@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-type AuthUser = {
+export type AuthUser = {
     id: string
     email: string | null
 }

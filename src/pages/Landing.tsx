@@ -23,32 +23,32 @@ export default function Landing() {
     }
 
     return (
-        <div style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '1fr 1fr', background: 'linear-gradient(180deg, #ffffff 0%, #eef5ff 100%)' }}>
-            <div style={{ padding: 40, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <div style={{ color: '#0b5fff', fontWeight: 800, fontSize: 42, lineHeight: 1.1, marginBottom: 12 }}>Slim Better</div>
-                <div style={{ color: '#09357b', fontSize: 18, opacity: 0.85, marginBottom: 24 }}>Manage patients, sessions, and payments with clarity. A modern, minimal dashboard for your clinic.</div>
-                <ul style={{ color: '#09357b', opacity: 0.9, lineHeight: 1.8 }}>
+        <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 bg-gradient-to-b from-white to-[#eef5ff]">
+            <div className="p-6 md:p-8 flex flex-col justify-center">
+                <div className="text-primary font-extrabold text-4xl md:text-5xl leading-tight mb-3">Slim Better</div>
+                <div className="text-primaryDark text-base md:text-lg opacity-85 mb-5">Manage patients, sessions, and payments with clarity. A modern, minimal dashboard for your clinic.</div>
+                <ul className="text-primaryDark opacity-90 leading-7 list-disc list-inside">
                     <li>Fast analytics dashboard</li>
                     <li>Track sessions and next appointments</li>
                     <li>Payments overview at a glance</li>
                 </ul>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-                <form onSubmit={handleSubmit} style={{ width: 360, background: 'white', border: '1px solid #e6eef8', boxShadow: '0 10px 30px rgba(11,95,255,0.08)', padding: 24, borderRadius: 16 }}>
-                    <div style={{ fontWeight: 700, fontSize: 20, color: '#09357b', marginBottom: 16 }}>{mode === 'login' ? 'Sign in' : 'Create account'}</div>
-                    <label style={{ display: 'block', fontSize: 12, color: '#335', marginBottom: 6 }}>Email</label>
-                    <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required placeholder="you@example.com" style={{ width: '100%', padding: '10px 12px', border: '1px solid #cfe0ff', borderRadius: 10, marginBottom: 12 }} />
-                    <label style={{ display: 'block', fontSize: 12, color: '#335', marginBottom: 6 }}>Password</label>
-                    <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required placeholder="••••••••" style={{ width: '100%', padding: '10px 12px', border: '1px solid #cfe0ff', borderRadius: 10, marginBottom: 12 }} />
-                    {error && <div style={{ color: '#c62828', fontSize: 13, marginBottom: 8 }}>{error}</div>}
-                    <button type="submit" disabled={loading} style={{ width: '100%', border: 'none', background: '#0b5fff', color: 'white', padding: '10px 12px', borderRadius: 10, fontWeight: 700, cursor: 'pointer', marginTop: 4 }}>
+            <div className="flex items-center justify-center p-4 md:p-6">
+                <form onSubmit={handleSubmit} className="w-full max-w-sm bg-white border border-[#e6eef8] shadow-[0_8px_24px_rgba(11,95,255,0.08)] p-4 rounded-xl">
+                    <div className="font-bold text-lg text-primaryDark mb-3">{mode === 'login' ? 'Sign in' : 'Create account'}</div>
+                    <label className="block text-xs text-[#335] mb-1">Email</label>
+                    <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required placeholder="you@example.com" className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg mb-3" />
+                    <label className="block text-xs text-[#335] mb-1">Password</label>
+                    <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required placeholder="••••••••" className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg mb-3" />
+                    {error && <div className="text-red-700 text-sm mb-2">{error}</div>}
+                    <button type="submit" disabled={loading} className="w-full rounded-lg bg-primary text-white px-3 py-2 font-bold">
                         {loading ? 'Please wait…' : (mode === 'login' ? 'Sign in' : 'Create account')}
                     </button>
-                    <div style={{ marginTop: 12, textAlign: 'center', color: '#09357b' }}>
+                    <div className="mt-3 text-center text-primaryDark">
                         {mode === 'login' ? (
-                            <span>New here? <button type="button" onClick={() => setMode('signup')} style={{ background: 'transparent', border: 'none', color: '#0b5fff', fontWeight: 700, cursor: 'pointer' }}>Create an account</button></span>
+                            <span>New here? <button type="button" onClick={() => setMode('signup')} className="bg-transparent border-0 text-primary font-bold">Create an account</button></span>
                         ) : (
-                            <span>Already have an account? <button type="button" onClick={() => setMode('login')} style={{ background: 'transparent', border: 'none', color: '#0b5fff', fontWeight: 700, cursor: 'pointer' }}>Sign in</button></span>
+                            <span>Already have an account? <button type="button" onClick={() => setMode('login')} className="bg-transparent border-0 text-primary font-bold">Sign in</button></span>
                         )}
                     </div>
                 </form>
