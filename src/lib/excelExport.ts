@@ -285,6 +285,7 @@ export async function exportPatientsToExcelWithLogo(patients: Array<{
   phone_number: string
   age?: number | null
   address?: string | null
+  branch_name?: string | null
   date_of_birth?: string | null
   created_at?: string | null
 }>) {
@@ -293,6 +294,7 @@ export async function exportPatientsToExcelWithLogo(patients: Array<{
     'Phone Number': patient.phone_number || '',
     'Age': patient.age || '',
     'Address': patient.address || '',
+    'Branch Name': patient.branch_name || '',
     'Date of Birth': patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : '',
     'Created Date': patient.created_at ? new Date(patient.created_at).toLocaleDateString() : '',
   }))
@@ -330,7 +332,7 @@ export async function exportPackagesToExcelWithLogo(packages: Array<{
     'Total Payment (PKR)': pkg.total_payment || 0,
     'Paid Payment (PKR)': pkg.paid_payment || 0,
     'Advance Payment (PKR)': pkg.advance_payment || 0,
-    'Pending Payment (PKR)': (pkg.total_payment || 0) - ((pkg.paid_payment || 0) + (pkg.advance_payment || 0)),
+    'Pending Payment (PKR)': (pkg.total_payment || 0) - (pkg.paid_payment === 0 ? pkg.advance_payment : pkg.paid_payment),
   }))
 
   const filename = patientName
