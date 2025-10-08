@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { supabase } from '../lib/supabaseClient'
-import type { BuyedPackageWithCreator } from '../types/db'
+import type { BuyedPackageWithCreator, BuyedPackage } from '../types/db'
 
 type State = {
     itemsByPatientId: Record<number, BuyedPackageWithCreator[]>
@@ -50,8 +50,11 @@ export const deletePackage = createAsyncThunk(
 
 export const updatePackage = createAsyncThunk(
     'buyedPackages/update',
-    async (payload: BuyedPackageWithCreator) => {
-        const { error } = await supabase.from('buyed_packages').update(payload as Record<string, unknown>).eq('id', payload.id)
+    async (payload: { id: number; patient_id: number; data: Partial<BuyedPackage> }) => {
+        const { error } = await supabase
+            .from('buyed_packages')
+            .update(payload.data as Record<string, unknown>)
+            .eq('id', payload.id)
         if (error) throw new Error(error.message)
         return { patientId: payload.patient_id }
     }
