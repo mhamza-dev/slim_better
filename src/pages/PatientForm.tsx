@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import type { Patient } from '../types/db'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import { Card, CardContent, CardHeader } from '../components/ui/Card'
 
 export default function PatientForm() {
@@ -49,8 +49,8 @@ export default function PatientForm() {
                 if (error) throw error
             }
             navigate('/patients')
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'An error occurred')
         } finally {
             setLoading(false)
         }
@@ -58,8 +58,8 @@ export default function PatientForm() {
 
     return (
         <div>
-            <h2 className="text-primaryDark mb-3">{editing ? 'Edit patient' : 'Add patient'}</h2>
-            <Card className="max-w-xl">
+            <h2 className="text-primaryDark mb-3 text-lg sm:text-xl">{editing ? 'Edit patient' : 'Add patient'}</h2>
+            <Card className="max-w-xl mx-auto">
                 <CardHeader />
                 <CardContent>
                     <form onSubmit={onSubmit} className="space-y-3">
@@ -80,9 +80,9 @@ export default function PatientForm() {
                             <label className="block text-xs text-[#335] mb-1">Date of birth</label>
                             <input type="date" className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" value={form.date_of_birth || ''} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} />
                         </div>
-                        <div className="flex gap-2">
-                            <button className="rounded-lg bg-primary text-white px-3 py-2 font-semibold" disabled={loading} type="submit">{editing ? 'Save changes' : 'Create'}</button>
-                            <button className="rounded-lg bg-gray-100 text-primaryDark px-3 py-2" type="button" onClick={() => history.back()}>Cancel</button>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <button className="rounded-lg bg-primary text-white px-3 py-2 font-semibold flex-1" disabled={loading} type="submit">{editing ? 'Save changes' : 'Create'}</button>
+                            <button className="rounded-lg bg-gray-100 text-primaryDark px-3 py-2 flex-1 sm:flex-none" type="button" onClick={() => history.back()}>Cancel</button>
                         </div>
                     </form>
                 </CardContent>

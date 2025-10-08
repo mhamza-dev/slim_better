@@ -1,10 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
-
-export type Toast = { id: number; title: string; description?: string; variant?: 'success' | 'error' | 'info' }
-
-const ToastContext = createContext<{
-  show: (t: Omit<Toast, 'id'>) => void
-} | null>(null)
+import { useCallback, useMemo, useState } from 'react'
+import { ToastContext, type Toast } from '../context/ToastContext'
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
@@ -17,12 +12,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="fixed z-[60] bottom-4 right-4 flex flex-col gap-2">
+      <div className="fixed z-[60] bottom-4 right-2 sm:right-4 left-2 sm:left-auto flex flex-col gap-2">
         {toasts.map((t) => (
-          <div key={t.id} className={`min-w-[260px] rounded-xl border px-4 py-3 shadow-lg backdrop-blur text-sm ${
-            t.variant === 'success' ? 'bg-emerald-50/90 border-emerald-200 text-emerald-800' :
-            t.variant === 'error' ? 'bg-red-50/90 border-red-200 text-red-800' : 'bg-white/90 border-[#e6eef8] text-primaryDark'
-          }`}>
+          <div key={t.id} className={`min-w-[260px] max-w-[calc(100vw-1rem)] sm:max-w-none rounded-xl border px-4 py-3 shadow-lg backdrop-blur text-sm ${t.variant === 'success' ? 'bg-emerald-50/90 border-emerald-200 text-emerald-800' :
+              t.variant === 'error' ? 'bg-red-50/90 border-red-200 text-red-800' : 'bg-white/90 border-[#e6eef8] text-primaryDark'
+            }`}>
             <div className="font-semibold">{t.title}</div>
             {t.description && <div className="text-xs opacity-80">{t.description}</div>}
           </div>
@@ -32,10 +26,5 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function useToast() {
-  const ctx = useContext(ToastContext)
-  if (!ctx) throw new Error('useToast must be used within ToastProvider')
-  return ctx
-}
 
 

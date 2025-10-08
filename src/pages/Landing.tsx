@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import { Navigate } from 'react-router-dom'
 
 export default function Landing() {
@@ -24,17 +24,17 @@ export default function Landing() {
 
     return (
         <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 bg-gradient-to-b from-white to-[#eef5ff]">
-            <div className="p-6 md:p-8 flex flex-col justify-center">
-                <div className="text-primary font-extrabold text-4xl md:text-5xl leading-tight mb-3">Slim Better</div>
-                <div className="text-primaryDark text-base md:text-lg opacity-85 mb-5">Manage patients, sessions, and payments with clarity. A modern, minimal dashboard for your clinic.</div>
-                <ul className="text-primaryDark opacity-90 leading-7 list-disc list-inside">
+            <div className="p-4 sm:p-6 md:p-8 flex flex-col justify-center">
+                <div className="text-primary font-extrabold text-3xl sm:text-4xl md:text-5xl leading-tight mb-3">Slim Better</div>
+                <div className="text-primaryDark text-sm sm:text-base md:text-lg opacity-85 mb-5">Manage patients, sessions, and payments with clarity. A modern, minimal dashboard for your clinic.</div>
+                <ul className="text-primaryDark opacity-90 leading-6 sm:leading-7 list-disc list-inside text-sm sm:text-base">
                     <li>Fast analytics dashboard</li>
                     <li>Track sessions and next appointments</li>
                     <li>Payments overview at a glance</li>
                 </ul>
             </div>
             <div className="flex items-center justify-center p-4 md:p-6">
-                <form onSubmit={handleSubmit} className="w-full max-w-sm bg-white border border-[#e6eef8] shadow-[0_8px_24px_rgba(11,95,255,0.08)] p-4 rounded-xl">
+                <form onSubmit={handleSubmit} className="w-full max-w-sm bg-white border border-[#e6eef8] shadow-[0_8px_24px_rgba(11,95,255,0.08)] p-4 sm:p-6 rounded-xl">
                     <div className="font-bold text-lg text-primaryDark mb-3">{mode === 'login' ? 'Sign in' : 'Create account'}</div>
                     <label className="block text-xs text-[#335] mb-1">Email</label>
                     <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required placeholder="you@example.com" className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg mb-3" />
@@ -44,7 +44,7 @@ export default function Landing() {
                     <button type="submit" disabled={loading} className="w-full rounded-lg bg-primary text-white px-3 py-2 font-bold">
                         {loading ? 'Please wait…' : (mode === 'login' ? 'Sign in' : 'Create account')}
                     </button>
-                    <div className="mt-3 text-center text-primaryDark">
+                    <div className="mt-3 text-center text-primaryDark text-sm">
                         {mode === 'login' ? (
                             <span>New here? <button type="button" onClick={() => setMode('signup')} className="bg-transparent border-0 text-primary font-bold">Create an account</button></span>
                         ) : (

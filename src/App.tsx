@@ -6,8 +6,10 @@ import Dashboard from './pages/Dashboard'
 import Patients from './pages/Patients'
 import PatientForm from './pages/PatientForm'
 import PatientDetail from './pages/PatientDetail'
+import NotFound from './pages/NotFound'
 import AppLayout from './layouts/AppLayout'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 function App() {
   const router = createBrowserRouter(createRoutesFromElements(
@@ -18,17 +20,20 @@ function App() {
         <Route path="patients" element={<Patients />} />
         <Route path="patients/new" element={<PatientForm />} />
         <Route path="patients/:id" element={<PatientDetail />} />
-        <Route path="patients/:id/edit" element={<PatientForm />} />
       </Route>
+      {/* Catch-all route for 404 */}
+      <Route path="*" element={<NotFound />} />
     </Route>
   ))
 
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <RouterProvider router={router} />
-      </ToastProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }
 
