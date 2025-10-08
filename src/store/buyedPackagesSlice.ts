@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import { supabase } from '../lib/supabaseClient'
-import type { BuyedPackageWithCreator, BuyedPackage } from '../types/db'
+import type { BuyedPackageWithCreator } from '../types/db'
 
 type State = {
     itemsByPatientId: Record<number, BuyedPackageWithCreator[]>

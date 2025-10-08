@@ -134,7 +134,7 @@ export function PackageEditModal({ packageId, patientId, isOpen, onClose }: Pack
 
                                         await (dispatch as unknown as (action: unknown) => Promise<unknown>)(updatePackage({
                                             id: packageId,
-                                            patientId: patientId,
+                                            patient_id: patientId,
                                             data: updateData
                                         }))
 
