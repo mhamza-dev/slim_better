@@ -36,15 +36,24 @@ export const addPackage = createAsyncThunk(
     }
 )
 
-export const updatePackage = createAsyncThunk(
-    'buyedPackages/update',
-    async (payload: { id: number; patientId: number; data: Partial<BuyedPackage> }) => {
+export const deletePackage = createAsyncThunk(
+    'buyedPackages/delete',
+    async (payload: { id: number; patientId: number }) => {
         const { error } = await supabase
             .from('buyed_packages')
-            .update(payload.data as Record<string, unknown>)
+            .delete()
             .eq('id', payload.id)
         if (error) throw new Error(error.message)
         return { patientId: payload.patientId }
+    }
+)
+
+export const updatePackage = createAsyncThunk(
+    'buyedPackages/update',
+    async (payload: BuyedPackageWithCreator) => {
+        const { error } = await supabase.from('buyed_packages').update(payload as Record<string, unknown>).eq('id', payload.id)
+        if (error) throw new Error(error.message)
+        return { patientId: payload.patient_id }
     }
 )
 
@@ -84,7 +93,7 @@ const slice = createSlice({
                 state.errorByPatientId[patientId] = action.error.message || 'Failed to add package'
             })
             .addCase(updatePackage.pending, (state, action) => {
-                const patientId = action.meta.arg.patientId
+                const patientId = action.meta.arg.patient_id
                 state.loadingByPatientId[patientId] = true
                 state.errorByPatientId[patientId] = null
             })
@@ -93,9 +102,23 @@ const slice = createSlice({
                 state.loadingByPatientId[patientId] = false
             })
             .addCase(updatePackage.rejected, (state, action) => {
-                const patientId = action.meta.arg.patientId
+                const patientId = action.meta.arg.patient_id
                 state.loadingByPatientId[patientId] = false
                 state.errorByPatientId[patientId] = action.error.message || 'Failed to update package'
+            })
+            .addCase(deletePackage.pending, (state, action) => {
+                const patientId = action.meta.arg.patientId
+                state.loadingByPatientId[patientId] = true
+                state.errorByPatientId[patientId] = null
+            })
+            .addCase(deletePackage.fulfilled, (state, action) => {
+                const patientId = action.payload.patientId
+                state.loadingByPatientId[patientId] = false
+            })
+            .addCase(deletePackage.rejected, (state, action) => {
+                const patientId = action.meta.arg.patientId
+                state.loadingByPatientId[patientId] = false
+                state.errorByPatientId[patientId] = action.error.message || 'Failed to delete package'
             })
     }
 })

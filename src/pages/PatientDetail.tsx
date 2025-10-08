@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import type { Patient, BuyedPackageWithCreator } from '../types/db'
 import { useDispatch, useSelector } from 'react-redux'
 import type { RootState } from '../store'
-import { fetchPackagesByPatient, addPackage } from '../store/buyedPackagesSlice'
+import { fetchPackagesByPatient, addPackage, deletePackage } from '../store/buyedPackagesSlice'
 import Modal from '../components/Modal'
 import { PackageEditModal } from '../components/PackageEditModal'
 import { Button } from '../components/ui/Button'
@@ -77,10 +77,7 @@ export default function PatientDetail() {
                                 <h2 className="text-primaryDark text-lg sm:text-xl">{patient?.name}</h2>
                                 <div className="text-sm text-gray-600">{age !== null ? `${age} yrs` : 'Age —'}</div>
                             </div>
-                            <div className="flex flex-col sm:flex-row gap-2">
-                                <a className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-100 text-primaryDark px-3 py-2" href={`/patients/${id}/edit`}><Edit size={16} /> Edit</a>
-                                <Button variant="danger" className="gap-2" onClick={removePatient}><Trash2 size={16} /> Delete</Button>
-                            </div>
+                            <Button variant="danger" className="gap-2" onClick={removePatient}><Trash2 size={16} /> Delete</Button>
                         </CardHeader>
                         <CardContent>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -199,6 +196,34 @@ function PackageSection({ patientId, items, user, patientName }: { patientId: nu
         setEditModalOpen(true)
     }
 
+    const handleDeletePackage = async (packageId: number) => {
+        if (!window.confirm('Are you sure you want to delete this package? This action cannot be undone.')) {
+            return
+        }
+
+        console.log('Attempting to delete package:', packageId, 'for patient:', patientId)
+
+        try {
+            // @ts-expect-error - Redux dispatch type issue
+            const result = await dispatch(deletePackage({ id: packageId, patientId: Number(patientId) }))
+
+            console.log('Delete result:', result)
+
+            if (deletePackage.fulfilled.match(result)) {
+                console.log('Delete successful, refreshing packages')
+                // Refresh the packages list
+                // @ts-expect-error - Redux dispatch type issue
+                dispatch(fetchPackagesByPatient(Number(patientId)))
+            } else if (deletePackage.rejected.match(result)) {
+                console.error('Delete package rejected:', result.error)
+                alert(`Failed to delete package: ${result.error.message || 'Unknown error'}`)
+            }
+        } catch (error) {
+            console.error('Failed to delete package:', error)
+            alert(`Failed to delete package: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        }
+    }
+
     return (
         <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -262,7 +287,7 @@ function PackageSection({ patientId, items, user, patientName }: { patientId: nu
                                     <td className="p-2 text-xs">{p.next_session_date ? new Date(p.next_session_date).toLocaleDateString() : '-'}</td>
                                     <td className="p-2 text-xs">PKR {p.total_payment.toFixed(0)}</td>
                                     <td className="p-2 text-xs">PKR {p.paid_payment.toFixed(0)}</td>
-                                    <td className="p-2 text-xs">PKR {(p.total_payment - (p.paid_payment === 0 ? p.advance_payment : p.paid_payment + p.advance_payment)).toFixed(0)}</td>
+                                    <td className="p-2 text-xs">PKR {(p.total_payment - (p.paid_payment === 0 ? p.advance_payment : p.paid_payment)).toFixed(0)}</td>
                                     <td className="p-2 text-xs">PKR {p.advance_payment.toFixed(0)}</td>
                                     <td className="p-2 text-center">
                                         <div className="flex items-center justify-center gap-1">
@@ -279,6 +304,13 @@ function PackageSection({ patientId, items, user, patientName }: { patientId: nu
                                                 title="Edit package"
                                             >
                                                 <Edit size={16} className="text-green-600" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeletePackage(p.id)}
+                                                className="p-1 hover:bg-red-100 rounded transition-colors"
+                                                title="Delete package"
+                                            >
+                                                <Trash2 size={16} className="text-red-600" />
                                             </button>
                                         </div>
                                     </td>
