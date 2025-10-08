@@ -52,6 +52,7 @@ export default function Patients() {
             patient.name.toLowerCase().includes(term) ||
             patient.phone_number.toLowerCase().includes(term) ||
             patient.address?.toLowerCase().includes(term) ||
+            patient.branch_name?.toLowerCase().includes(term) ||
             (patient.age && patient.age.toString().includes(term))
         )
     }, [computed, searchTerm])
@@ -105,19 +106,20 @@ export default function Patients() {
                         <table className="w-full min-w-[700px]">
                             <thead>
                                 <tr className="bg-[#f1f6ff] text-primaryDark">
-                                    <th className="text-left p-3 text-sm font-semibold w-[20%]">Name</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[18%]">Phone</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[10%]">Age</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[25%]">Address</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[15%]">Created</th>
-                                    <th className="text-right p-3 text-sm font-semibold w-[12%]">Actions</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[18%]">Name</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[16%]">Phone</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[8%]">Age</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[20%]">Address</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[18%]">Branch</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[12%]">Created</th>
+                                    <th className="text-right p-3 text-sm font-semibold w-[8%]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td className="p-3" colSpan={6}>Loading…</td></tr>
+                                    <tr><td className="p-3" colSpan={7}>Loading…</td></tr>
                                 ) : filteredPatients.length === 0 ? (
-                                    <tr><td className="p-3" colSpan={6}>
+                                    <tr><td className="p-3" colSpan={7}>
                                         {searchTerm ? `No patients found matching "${searchTerm}"` : 'No patients yet'}
                                     </td></tr>
                                 ) : (
@@ -127,6 +129,7 @@ export default function Patients() {
                                             <td className="p-3 text-sm">{p.phone_number}</td>
                                             <td className="p-3 text-sm text-left">{p.age ?? '-'}</td>
                                             <td className="p-3 truncate max-w-[150px]" title={p.address ?? ''}>{p.address ?? '-'}</td>
+                                            <td className="p-3 text-sm truncate max-w-[120px]" title={p.branch_name ?? ''}>{p.branch_name ?? '-'}</td>
                                             <td className="p-3 text-sm">{p.created_at ? new Date(p.created_at).toLocaleDateString() : '-'}</td>
                                             <td className="p-3 text-right">
                                                 <div className="flex items-center justify-end gap-1">
@@ -184,12 +187,13 @@ function PatientsModalForm({ onDone }: { onDone: () => void }) {
     const [submitting, setSubmitting] = useState(false)
     return (
         <Formik
-            initialValues={{ name: '', phone_number: '', address: '', date_of_birth: '' }}
+            initialValues={{ name: '', phone_number: '', address: '', date_of_birth: '', branch_name: '' }}
             validationSchema={Yup.object({
                 name: Yup.string().required('Required'),
                 phone_number: Yup.string().required('Required'),
                 address: Yup.string().nullable(),
                 date_of_birth: Yup.string().nullable(),
+                branch_name: Yup.string().required('Required'),
             })}
             onSubmit={async (values) => {
                 setSubmitting(true)
@@ -198,6 +202,7 @@ function PatientsModalForm({ onDone }: { onDone: () => void }) {
                     phone_number: values.phone_number,
                     address: values.address || null,
                     date_of_birth: values.date_of_birth || null,
+                    branch_name: values.branch_name,
                 })
                 setSubmitting(false)
                 if (error) { alert(error.message); return }
@@ -222,6 +227,15 @@ function PatientsModalForm({ onDone }: { onDone: () => void }) {
                 <div>
                     <label className="block text-xs text-[#335] mb-1">Date of birth</label>
                     <Field type="date" name="date_of_birth" className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" />
+                </div>
+                <div>
+                    <label className="block text-xs text-[#335] mb-1">Branch *</label>
+                    <Field as="select" name="branch_name" className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" required>
+                        <option value="">Select a branch</option>
+                        <option value="Canal Road Branch, Fsd">Canal Road Branch, Fsd</option>
+                        <option value="Kohinoor Branch, Fsd">Kohinoor Branch, Fsd</option>
+                    </Field>
+                    <ErrorMessage name="branch_name" component="div" className="text-red-700 text-sm" />
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
                     <button type="submit" disabled={submitting} className="rounded-lg bg-primary text-white px-3 py-2 font-semibold flex-1">Save</button>

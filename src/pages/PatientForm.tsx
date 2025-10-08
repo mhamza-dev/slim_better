@@ -11,7 +11,7 @@ export default function PatientForm() {
     const { user } = useAuth()
     const editing = Boolean(id)
     const [loading, setLoading] = useState(false)
-    const [form, setForm] = useState<Partial<Patient>>({ name: '', phone_number: '', address: '', date_of_birth: '' })
+    const [form, setForm] = useState<Partial<Patient>>({ name: '', phone_number: '', address: '', date_of_birth: '', branch_name: '' })
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
@@ -36,6 +36,7 @@ export default function PatientForm() {
                     phone_number: form.phone_number,
                     address: form.address,
                     date_of_birth: form.date_of_birth || null,
+                    branch_name: form.branch_name,
                     created_by: user?.id,
                 }).eq('id', id)
                 if (error) throw error
@@ -45,6 +46,7 @@ export default function PatientForm() {
                     phone_number: form.phone_number,
                     address: form.address,
                     date_of_birth: form.date_of_birth || null,
+                    branch_name: form.branch_name,
                 })
                 if (error) throw error
             }
@@ -79,6 +81,14 @@ export default function PatientForm() {
                         <div>
                             <label className="block text-xs text-[#335] mb-1">Date of birth</label>
                             <input type="date" className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" value={form.date_of_birth || ''} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-[#335] mb-1">Branch</label>
+                            <select className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" value={form.branch_name || ''} onChange={(e) => setForm({ ...form, branch_name: e.target.value })} required>
+                                <option value="">Select a branch</option>
+                                <option value="Canal Road Branch, Fsd">Canal Road Branch, Fsd</option>
+                                <option value="Kohinoor Branch, Fsd">Kohinoor Branch, Fsd</option>
+                            </select>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-2">
                             <button className="rounded-lg bg-primary text-white px-3 py-2 font-semibold flex-1" disabled={loading} type="submit">{editing ? 'Save changes' : 'Create'}</button>

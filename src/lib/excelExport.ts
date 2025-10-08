@@ -201,10 +201,10 @@ export function exportPackagesToExcel(packages: Array<{
     'Gap (Days)': pkg.gap_between_sessions || 0,
     'Start Date': pkg.start_date ? new Date(pkg.start_date).toLocaleDateString() : '',
     'Next Session Date': pkg.next_session_date ? new Date(pkg.next_session_date).toLocaleDateString() : '',
-    'Total Payment (₹)': pkg.total_payment || 0,
-    'Paid Payment (₹)': pkg.paid_payment || 0,
-    'Advance Payment (₹)': pkg.advance_payment || 0,
-    'Pending Payment (₹)': (pkg.total_payment - (pkg.paid_payment + pkg.advance_payment)) || 0
+    'Total Payment (PKR)': pkg.total_payment || 0,
+    'Paid Payment (PKR)': pkg.paid_payment || 0,
+    'Advance Payment (PKR)': pkg.advance_payment || 0,
+    'Pending Payment (PKR)': (pkg.total_payment - (pkg.paid_payment + pkg.advance_payment)) || 0
   }))
 
   const filename = patientName
@@ -236,13 +236,13 @@ export function exportDashboardToExcel(dashboardData: {
     'Metric': 'Total Packages',
     'Value': dashboardData.totalPackages
   }, {
-    'Metric': 'Total Revenue (₹)',
+    'Metric': 'Total Revenue (PKR)',
     'Value': dashboardData.totalRevenue
   }, {
-    'Metric': 'Total Paid (₹)',
+    'Metric': 'Total Paid (PKR)',
     'Value': dashboardData.totalPaid
   }, {
-    'Metric': 'Total Advance (₹)',
+    'Metric': 'Total Advance (PKR)',
     'Value': dashboardData.totalAdvance
   }]
 
@@ -327,10 +327,10 @@ export async function exportPackagesToExcelWithLogo(packages: Array<{
     'Gap (Days)': pkg.gap_between_sessions || 0,
     'Start Date': pkg.start_date ? new Date(pkg.start_date).toLocaleDateString() : '',
     'Next Session Date': pkg.next_session_date ? new Date(pkg.next_session_date).toLocaleDateString() : '',
-    'Total Payment (₹)': pkg.total_payment || 0,
-    'Paid Payment (₹)': pkg.paid_payment || 0,
-    'Advance Payment (₹)': pkg.advance_payment || 0,
-    'Pending Payment (₹)': (pkg.total_payment || 0) - ((pkg.paid_payment || 0) + (pkg.advance_payment || 0)),
+    'Total Payment (PKR)': pkg.total_payment || 0,
+    'Paid Payment (PKR)': pkg.paid_payment || 0,
+    'Advance Payment (PKR)': pkg.advance_payment || 0,
+    'Pending Payment (PKR)': (pkg.total_payment || 0) - ((pkg.paid_payment || 0) + (pkg.advance_payment || 0)),
   }))
 
   const filename = patientName

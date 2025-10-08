@@ -96,6 +96,10 @@ export default function PatientDetail() {
                                     <div className="text-xs text-[#335] mb-1">DOB</div>
                                     <div className="font-semibold text-primary">{patient?.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : '-'}</div>
                                 </div>
+                                <div>
+                                    <div className="text-xs text-[#335] mb-1">Branch</div>
+                                    <div className="font-semibold text-primary">{patient?.branch_name || '-'}</div>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
@@ -234,10 +238,10 @@ function PackageSection({ patientId, items, user, patientName }: { patientId: nu
                                 <th className="text-left p-2 text-xs font-semibold w-[8%]">Gap</th>
                                 <th className="text-left p-2 text-xs font-semibold w-[10%]">Start Date</th>
                                 <th className="text-left p-2 text-xs font-semibold w-[10%]">Next Date</th>
-                                <th className="text-left p-2 text-xs font-semibold w-[10%]">Total ₹</th>
-                                <th className="text-left p-2 text-xs font-semibold w-[10%]">Paid ₹</th>
-                                <th className="text-left p-2 text-xs font-semibold w-[10%]">Pending ₹</th>
-                                <th className="text-left p-2 text-xs font-semibold w-[10%]">Advance ₹</th>
+                                <th className="text-left p-2 text-xs font-semibold w-[10%]">Total PKR</th>
+                                <th className="text-left p-2 text-xs font-semibold w-[10%]">Paid PKR</th>
+                                <th className="text-left p-2 text-xs font-semibold w-[10%]">Pending PKR</th>
+                                <th className="text-left p-2 text-xs font-semibold w-[10%]">Advance PKR</th>
                                 <th className="text-center p-2 text-xs font-semibold w-[6%]">Actions</th>
                             </tr>
                         </thead>
@@ -256,10 +260,10 @@ function PackageSection({ patientId, items, user, patientName }: { patientId: nu
                                     <td className="p-2 text-xs text-left">{p.gap_between_sessions}</td>
                                     <td className="p-2 text-xs">{new Date(p.start_date).toLocaleDateString()}</td>
                                     <td className="p-2 text-xs">{p.next_session_date ? new Date(p.next_session_date).toLocaleDateString() : '-'}</td>
-                                    <td className="p-2 text-xs">₹{p.total_payment.toFixed(0)}</td>
-                                    <td className="p-2 text-xs">₹{p.paid_payment.toFixed(0)}</td>
-                                    <td className="p-2 text-xs">₹{(p.total_payment - (p.paid_payment === 0 ? p.advance_payment : p.paid_payment + p.advance_payment)).toFixed(0)}</td>
-                                    <td className="p-2 text-xs">₹{p.advance_payment.toFixed(0)}</td>
+                                    <td className="p-2 text-xs">PKR {p.total_payment.toFixed(0)}</td>
+                                    <td className="p-2 text-xs">PKR {p.paid_payment.toFixed(0)}</td>
+                                    <td className="p-2 text-xs">PKR {(p.total_payment - (p.paid_payment === 0 ? p.advance_payment : p.paid_payment + p.advance_payment)).toFixed(0)}</td>
+                                    <td className="p-2 text-xs">PKR {p.advance_payment.toFixed(0)}</td>
                                     <td className="p-2 text-center">
                                         <div className="flex items-center justify-center gap-1">
                                             <button

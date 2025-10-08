@@ -17,7 +17,7 @@ const initialState: PatientsState = {
 export const fetchPatients = createAsyncThunk('patients/fetch', async () => {
     const { data, error } = await supabase
         .from('patients')
-        .select('id, name, phone_number, address, date_of_birth, created_at, updated_at')
+        .select('id, name, phone_number, address, date_of_birth, branch_name, created_at, updated_at')
         .order('id', { ascending: false })
         .limit(200)
     if (error) throw new Error(error.message)

@@ -87,7 +87,7 @@ export default function Dashboard() {
     }, [packages])
 
     const formatCurrency = (amount: number) =>
-        amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })
+        `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 0 })}`
 
     const daysUntil = (dateStr: string) => {
         const today = new Date()

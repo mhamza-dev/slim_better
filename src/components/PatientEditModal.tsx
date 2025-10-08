@@ -14,7 +14,7 @@ interface PatientEditModalProps {
 export function PatientEditModal({ patientId, isOpen, onClose, onSuccess }: PatientEditModalProps) {
     const { user } = useAuth()
     const [loading, setLoading] = useState(false)
-    const [form, setForm] = useState<Partial<Patient>>({ name: '', phone_number: '', address: '', date_of_birth: '' })
+    const [form, setForm] = useState<Partial<Patient>>({ name: '', phone_number: '', address: '', date_of_birth: '', branch_name: '' })
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
@@ -67,6 +67,7 @@ export function PatientEditModal({ patientId, isOpen, onClose, onSuccess }: Pati
                 phone_number: form.phone_number,
                 address: form.address,
                 date_of_birth: form.date_of_birth || null,
+                branch_name: form.branch_name,
                 created_by: user?.id,
             }).eq('id', patientId)
 
@@ -152,6 +153,22 @@ export function PatientEditModal({ patientId, isOpen, onClose, onSuccess }: Pati
                                 value={form.date_of_birth || ''}
                                 onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })}
                             />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Branch *
+                            </label>
+                            <select
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                value={form.branch_name || ''}
+                                onChange={(e) => setForm({ ...form, branch_name: e.target.value })}
+                                required
+                            >
+                                <option value="">Select a branch</option>
+                                <option value="Canal Road Branch, Fsd">Canal Road Branch, Fsd</option>
+                                <option value="Kohinoor Branch, Fsd">Kohinoor Branch, Fsd</option>
+                            </select>
                         </div>
 
                         {/* Action Buttons */}

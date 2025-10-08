@@ -25,7 +25,14 @@ export default function Landing() {
     return (
         <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 bg-gradient-to-b from-white to-[#eef5ff]">
             <div className="p-4 sm:p-6 md:p-8 flex flex-col justify-center">
-                <div className="text-primary font-extrabold text-3xl sm:text-4xl md:text-5xl leading-tight mb-3">Slim Better</div>
+                <div className="flex items-center gap-6 mb-8">
+                    <img
+                        src="/hero-icon.jpeg"
+                        alt="SLIM BETTER"
+                        className="h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 lg:h-48 lg:w-48 rounded-xl object-cover shadow-2xl"
+                    />
+                    <div className="text-primary font-extrabold text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-tight">Slim Better</div>
+                </div>
                 <div className="text-primaryDark text-sm sm:text-base md:text-lg opacity-85 mb-5">Manage patients, sessions, and payments with clarity. A modern, minimal dashboard for your clinic.</div>
                 <ul className="text-primaryDark opacity-90 leading-6 sm:leading-7 list-disc list-inside text-sm sm:text-base">
                     <li>Fast analytics dashboard</li>

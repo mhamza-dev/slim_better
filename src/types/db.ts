@@ -4,6 +4,7 @@ export type Patient = {
     phone_number: string
     address: string | null
     date_of_birth: string | null
+    branch_name: string | null
     created_by: string | null
     created_at: string | null
     updated_at: string | null
