@@ -111,20 +111,21 @@ export default function Patients() {
                         <table className="w-full min-w-[700px]">
                             <thead>
                                 <tr className="bg-[#f1f6ff] text-primaryDark">
-                                    <th className="text-left p-3 text-sm font-semibold w-[18%]">Name</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[16%]">Phone</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[8%]">Age</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[20%]">Address</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[18%]">Branch</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[12%]">Created</th>
-                                    <th className="text-right p-3 text-sm font-semibold w-[8%]">Actions</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[16%]">Name</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[14%]">Phone</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[7%]">Age</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[18%]">Address</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[16%]">Branch</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[10%]">Created</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[13%]">Created by</th>
+                                    <th className="text-right p-3 text-sm font-semibold w-[6%]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td className="p-3" colSpan={7}>Loading…</td></tr>
+                                    <tr><td className="p-3" colSpan={8}>Loading…</td></tr>
                                 ) : filteredPatients.length === 0 ? (
-                                    <tr><td className="p-3" colSpan={7}>
+                                    <tr><td className="p-3" colSpan={8}>
                                         {searchTerm ? `No patients found matching "${searchTerm}"` : 'No patients yet'}
                                     </td></tr>
                                 ) : (
@@ -136,6 +137,7 @@ export default function Patients() {
                                             <td className="p-3 truncate max-w-[150px]" title={p.address ?? ''}>{p.address ?? '-'}</td>
                                             <td className="p-3 text-sm truncate max-w-[120px]" title={p.branch_name ?? ''}>{p.branch_name ?? '-'}</td>
                                             <td className="p-3 text-sm">{p.created_at ? new Date(p.created_at).toLocaleDateString() : '-'}</td>
+                                            <td className="p-3 text-sm truncate max-w-[100px]" title={p.creator_email ?? ''}>{p.creator_email ?? '-'}</td>
                                             <td className="p-3 text-right">
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleEditPatient(p.id) }}
@@ -193,7 +195,6 @@ function PatientsModalForm({ onDone }: { onDone: () => void }) {
         { type: 'date', name: 'date_of_birth', label: 'Date of birth' },
         {
             type: 'select', name: 'branch_name', label: 'Branch *', options: [
-                { label: 'Select a branch', value: '' },
                 { label: 'Canal Road Branch, Fsd', value: 'Canal Road Branch, Fsd' },
                 { label: 'Kohinoor Branch, Fsd', value: 'Kohinoor Branch, Fsd' },
             ]

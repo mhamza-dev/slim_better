@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import Modal from './Modal'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Badge } from './ui/Badge'
-import { fetchPackageBySessionId, type DashboardPackageRow } from '../services/packagesService'
+import { useAppDispatch, useAppSelector } from '../store/hooks'
+import { fetchPackageDetailsBySession, clearPackageDetails, setSessionId } from '../store/packageDetailsSlice'
 
 interface PackageDetailsModalProps {
     isOpen: boolean
@@ -11,38 +12,24 @@ interface PackageDetailsModalProps {
 }
 
 export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetailsModalProps) {
-    const [packageData, setPackageData] = useState<DashboardPackageRow | null>(null)
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const dispatch = useAppDispatch()
+    const { selectedPackage, loading, error } = useAppSelector((state) => state.packageDetails)
 
     useEffect(() => {
         if (!isOpen || !sessionId) {
-            setPackageData(null)
-            setError(null)
+            dispatch(clearPackageDetails())
             return
         }
 
-        let mounted = true
-        setLoading(true)
-        setError(null)
+        // Set the session ID and fetch package details
+        dispatch(setSessionId(sessionId))
+        dispatch(fetchPackageDetailsBySession(sessionId))
+    }, [dispatch, isOpen, sessionId])
 
-            ; (async () => {
-                try {
-                    const data = await fetchPackageBySessionId(sessionId)
-                    if (!mounted) return
-                    setPackageData(data)
-                } catch (err) {
-                    if (!mounted) return
-                    setError(err instanceof Error ? err.message : 'Failed to fetch package details')
-                } finally {
-                    if (mounted) {
-                        setLoading(false)
-                    }
-                }
-            })()
-
-        return () => { mounted = false }
-    }, [isOpen, sessionId])
+    const handleClose = () => {
+        dispatch(clearPackageDetails())
+        onClose()
+    }
 
     const formatCurrency = (amount: number) =>
         `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 0 })}`
@@ -55,27 +42,27 @@ export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetai
         })
 
     const getRemainingSessions = () => {
-        if (!packageData) return 0
-        return packageData.no_of_sessions - packageData.sessions_completed
+        if (!selectedPackage) return 0
+        return selectedPackage.no_of_sessions - selectedPackage.sessions_completed
     }
 
     const getRemainingPayment = () => {
-        if (!packageData) return 0
-        return packageData.total_payment - packageData.paid_payment
+        if (!selectedPackage) return 0
+        return selectedPackage.total_payment - (selectedPackage.paid_payment + selectedPackage.advance_payment)
     }
 
     const getProgressPercentage = () => {
-        if (!packageData || packageData.no_of_sessions === 0) return 0
-        return Math.round((packageData.sessions_completed / packageData.no_of_sessions) * 100)
+        if (!selectedPackage || selectedPackage.no_of_sessions === 0) return 0
+        return Math.round((selectedPackage.sessions_completed / selectedPackage.no_of_sessions) * 100)
     }
 
     const getPaymentProgressPercentage = () => {
-        if (!packageData || packageData.total_payment === 0) return 0
-        return Math.round((packageData.paid_payment / packageData.total_payment) * 100)
+        if (!selectedPackage || selectedPackage.total_payment === 0) return 0
+        return Math.round((selectedPackage.paid_payment / selectedPackage.total_payment) * 100)
     }
 
     return (
-        <Modal open={isOpen} onClose={onClose} title="Package Details">
+        <Modal open={isOpen} onClose={handleClose} title="Package Details">
             <div className="space-y-4">
                 {loading && (
                     <div className="text-center py-8">
@@ -88,10 +75,16 @@ export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetai
                     <div className="text-center py-8">
                         <div className="text-red-600 mb-2">⚠️ Error</div>
                         <p className="text-gray-600">{error}</p>
+                        <button
+                            className="mt-3 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                            onClick={() => sessionId && dispatch(fetchPackageDetailsBySession(sessionId))}
+                        >
+                            Retry
+                        </button>
                     </div>
                 )}
 
-                {packageData && !loading && (
+                {selectedPackage && !loading && (
                     <>
                         {/* Patient Info */}
                         <Card>
@@ -100,7 +93,7 @@ export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetai
                             </CardHeader>
                             <CardContent>
                                 <div className="text-xl font-semibold text-primaryDark">
-                                    {packageData.patients?.name || 'Unknown Patient'}
+                                    {selectedPackage.patients?.name || 'Unknown Patient'}
                                 </div>
                             </CardContent>
                         </Card>
@@ -114,23 +107,23 @@ export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetai
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <div className="text-sm text-gray-600">Package ID</div>
-                                        <div className="font-semibold">#{packageData.id}</div>
+                                        <div className="font-semibold">#{selectedPackage.id}</div>
                                     </div>
                                     <div>
                                         <div className="text-sm text-gray-600">Start Date</div>
-                                        <div className="font-semibold">{formatDate(packageData.start_date)}</div>
+                                        <div className="font-semibold">{formatDate(selectedPackage.start_date)}</div>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <div className="text-sm text-gray-600">Gap Between Sessions</div>
-                                        <div className="font-semibold">{packageData.gap_between_sessions} days</div>
+                                        <div className="font-semibold">{selectedPackage.gap_between_sessions} days</div>
                                     </div>
                                     <div>
                                         <div className="text-sm text-gray-600">Next Session</div>
                                         <div className="font-semibold">
-                                            {packageData.next_session_date ? formatDate(packageData.next_session_date) : 'No upcoming sessions'}
+                                            {selectedPackage.next_session_date ? formatDate(selectedPackage.next_session_date) : 'No upcoming sessions'}
                                         </div>
                                     </div>
                                 </div>
@@ -145,7 +138,7 @@ export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetai
                             <CardContent className="space-y-4">
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="text-center">
-                                        <div className="text-2xl font-bold text-primary">{packageData.sessions_completed}</div>
+                                        <div className="text-2xl font-bold text-primary">{selectedPackage.sessions_completed}</div>
                                         <div className="text-sm text-gray-600">Completed</div>
                                     </div>
                                     <div className="text-center">
@@ -153,7 +146,7 @@ export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetai
                                         <div className="text-sm text-gray-600">Remaining</div>
                                     </div>
                                     <div className="text-center">
-                                        <div className="text-2xl font-bold text-gray-700">{packageData.no_of_sessions}</div>
+                                        <div className="text-2xl font-bold text-gray-700">{selectedPackage.no_of_sessions}</div>
                                         <div className="text-sm text-gray-600">Total</div>
                                     </div>
                                 </div>
@@ -182,21 +175,21 @@ export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetai
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <div className="text-sm text-gray-600">Total Payment</div>
-                                        <div className="font-semibold text-lg">{formatCurrency(packageData.total_payment)}</div>
+                                        <div className="font-semibold text-lg">{formatCurrency(selectedPackage.total_payment)}</div>
                                     </div>
                                     <div>
                                         <div className="text-sm text-gray-600">Advance Payment</div>
-                                        <div className="font-semibold text-lg">{formatCurrency(packageData.advance_payment)}</div>
+                                        <div className="font-semibold text-lg">{formatCurrency(selectedPackage.advance_payment)}</div>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <div className="text-sm text-gray-600">Paid Amount</div>
-                                        <div className="font-semibold text-lg text-green-600">{formatCurrency(packageData.paid_payment)}</div>
+                                        <div className="font-semibold text-lg text-green-600">{formatCurrency(selectedPackage.paid_payment)}</div>
                                     </div>
                                     <div>
-                                        <div className="text-sm text-gray-600">Remaining</div>
+                                        <div className="text-sm text-gray-600">Remaining (Paid + Advance)</div>
                                         <div className="font-semibold text-lg text-red-600">{formatCurrency(getRemainingPayment())}</div>
                                     </div>
                                 </div>
@@ -218,15 +211,15 @@ export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetai
 
                         {/* Status Badges */}
                         <div className="flex flex-wrap gap-2">
-                            <Badge variant={packageData.sessions_completed === packageData.no_of_sessions ? 'green' : 'blue'}>
-                                {packageData.sessions_completed === packageData.no_of_sessions ? 'Completed' : 'In Progress'}
+                            <Badge variant={selectedPackage.sessions_completed === selectedPackage.no_of_sessions ? 'green' : 'blue'}>
+                                {selectedPackage.sessions_completed === selectedPackage.no_of_sessions ? 'Completed' : 'In Progress'}
                             </Badge>
                             <Badge variant={getRemainingPayment() === 0 ? 'green' : 'red'}>
                                 {getRemainingPayment() === 0 ? 'Fully Paid' : 'Payment Pending'}
                             </Badge>
-                            {packageData.next_session_date && (
+                            {selectedPackage.next_session_date && (
                                 <Badge variant="gray">
-                                    Next: {formatDate(packageData.next_session_date)}
+                                    Next: {formatDate(selectedPackage.next_session_date)}
                                 </Badge>
                             )}
                         </div>

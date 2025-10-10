@@ -23,10 +23,10 @@ export const fetchSessionsByPackage = createAppAsyncThunk<{ packageId: number; i
     }
 )
 
-export const rescheduleSession = createAppAsyncThunk<{ packageId: number }, { sessionId: number; packageId: number; newDateISO: string }>(
+export const rescheduleSession = createAppAsyncThunk<{ packageId: number }, { sessionId: number; packageId: number; newDateISO: string; updated_by?: string | null }>(
     'sessions/reschedule',
-    async ({ sessionId, packageId, newDateISO }) => {
-        await svcRescheduleSession(sessionId, newDateISO)
+    async ({ sessionId, packageId, newDateISO, updated_by }) => {
+        await svcRescheduleSession(sessionId, newDateISO, updated_by)
         return { packageId }
     }
 )
@@ -39,10 +39,10 @@ export const generateSessions = createAppAsyncThunk<{ packageId: number }, { buy
     }
 )
 
-export const completeSession = createAppAsyncThunk<{ packageId: number }, { sessionId: number; packageId: number }>(
+export const completeSession = createAppAsyncThunk<{ packageId: number }, { sessionId: number; packageId: number; updated_by?: string | null }>(
     'sessions/complete',
-    async ({ sessionId, packageId }) => {
-        await svcCompleteSession(sessionId)
+    async ({ sessionId, packageId, updated_by }) => {
+        await svcCompleteSession(sessionId, updated_by)
         return { packageId }
     }
 )

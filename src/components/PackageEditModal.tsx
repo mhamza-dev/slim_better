@@ -29,6 +29,7 @@ export function PackageEditModal({ packageId, patientId, isOpen, onClose }: Pack
                     .from('buyed_packages')
                     .select('*')
                     .eq('id', packageId)
+                    .eq('is_deleted', false)
                     .single()
 
                 if (error) throw error
@@ -114,6 +115,7 @@ export function PackageEditModal({ packageId, patientId, isOpen, onClose }: Pack
                                     { type: 'number', name: 'advance_payment', label: 'Advance Payment *', min: 0 },
                                 ] as FormFieldConfig[]}
                                 onSubmit={async (values) => {
+                                    console.log('Values:', values)
                                     if (!packageId) return
                                     setLoading(true)
                                     setError(null)
@@ -128,6 +130,7 @@ export function PackageEditModal({ packageId, patientId, isOpen, onClose }: Pack
                                         await dispatch(fetchPackagesByPatient(patientId))
                                         onClose()
                                     } catch (err) {
+                                        console.error(err)
                                         setError(err instanceof Error ? err.message : 'Failed to update package')
                                     } finally {
                                         setLoading(false)

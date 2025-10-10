@@ -28,11 +28,49 @@ export async function updatePatient(id: number, input: Partial<Patient>): Promis
 export async function fetchPatientsList(limit = 200): Promise<Patient[]> {
     const { data, error } = await supabase
         .from('patients')
-        .select('id, name, phone_number, address, date_of_birth, branch_name, created_at, updated_at')
+        .select('id, name, phone_number, address, date_of_birth, branch_name, created_at, updated_at, created_by')
+        .eq('is_deleted', false)
         .order('id', { ascending: false })
         .limit(limit)
     if (error) throw error
-    return (data as Patient[]) ?? []
+
+    const patients = (data as Patient[]) ?? []
+
+    // Get creator emails for patients that have created_by
+    const creatorIds = [...new Set(patients.map(p => p.created_by).filter(Boolean))]
+    if (creatorIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, email')
+            .in('id', creatorIds)
+        if (profilesError) throw profilesError
+
+        const profilesMap = new Map(profiles?.map(p => [p.id, p.email]) ?? [])
+
+        // Add creator_email to each patient
+        return patients.map(patient => ({
+            ...patient,
+            creator_email: patient.created_by ? profilesMap.get(patient.created_by) ?? null : null
+        }))
+    }
+
+    return patients
+}
+
+export async function softDeletePatient(id: number): Promise<void> {
+    // Soft delete patient and their packages
+    const { error } = await supabase
+        .from('patients')
+        .update({ is_deleted: true } as unknown as Record<string, unknown>)
+        .eq('id', id)
+    if (error) throw error
+
+    // Also soft-delete related buyed_packages
+    const { error: pkgErr } = await supabase
+        .from('buyed_packages')
+        .update({ is_deleted: true } as unknown as Record<string, unknown>)
+        .eq('patient_id', id)
+    if (pkgErr) throw pkgErr
 }
 
 

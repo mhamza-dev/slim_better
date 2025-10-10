@@ -10,6 +10,7 @@ export default function AppLayout() {
     const location = useLocation()
     const localStorageSidebarOpen = localStorage.getItem('sidebarOpen')
     const [sidebarOpen, setSidebarOpen] = useState(localStorageSidebarOpen ? localStorageSidebarOpen === 'true' : true)
+    const [signingOut, setSigningOut] = useState(false)
 
     const titleFromPath = (() => {
         const path = location.pathname.replace(/^\/+|\/+$/g, '') || 'dashboard'
@@ -18,6 +19,24 @@ export default function AppLayout() {
     })()
 
     const userInitial = user?.email ? user.email.charAt(0).toUpperCase() : 'U'
+
+    const handleSignOut = async () => {
+        if (signingOut) return // Prevent multiple clicks
+
+        setSigningOut(true)
+        try {
+            await signOut()
+            // The auth state change will handle navigation via ProtectedRoute
+        } catch (error) {
+            console.error('Sign out failed:', error)
+            // Only show alert for unexpected errors, not for missing sessions
+            if (error instanceof Error && !error.message.includes('Auth session missing')) {
+                alert('Failed to sign out. Please try again.')
+            }
+        } finally {
+            setSigningOut(false)
+        }
+    }
 
     return (
         <div className="flex min-h-screen bg-[radial-gradient(1000px_400px_at_-10%_-10%,#e8f1ff,transparent),radial-gradient(800px_400px_at_110%_-10%,#f0f7ff,transparent)]">
@@ -74,9 +93,16 @@ export default function AppLayout() {
                             <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">{userInitial}</div>
                             <div className="hidden sm:block text-sm text-primaryDark">{user?.email || '—'}</div>
                         </div>
-                        <Button onClick={signOut} variant="secondary" className="gap-2 text-xs sm:text-sm">
+                        <Button
+                            onClick={handleSignOut}
+                            variant="secondary"
+                            className="gap-2 text-xs sm:text-sm"
+                            disabled={signingOut}
+                        >
                             <LogOut size={16} />
-                            <span className="hidden xs:inline">Sign out</span>
+                            <span className="hidden xs:inline">
+                                {signingOut ? 'Signing out...' : 'Sign out'}
+                            </span>
                         </Button>
                     </div>
                 </header>

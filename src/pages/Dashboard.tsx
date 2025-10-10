@@ -214,31 +214,89 @@ export default function Dashboard() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid gap-2">
+                        <div className="space-y-3">
                             {loading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
-                                    <div key={i} className="h-16 rounded-lg bg-gray-100 animate-pulse" />
+                                    <div key={i} className="h-20 rounded-xl bg-gray-100 animate-pulse" />
                                 ))
                             ) : rangeSessions.length === 0 ? (
-                                <div className="text-center py-4 text-gray-500">
-                                    {`No upcoming sessions for ${new Date(filterDate).toLocaleDateString()}`}
+                                <div className="text-center py-12">
+                                    <div className="text-gray-400 text-6xl mb-4">📅</div>
+                                    <div className="text-gray-500 text-lg font-medium mb-2">No upcoming sessions</div>
+                                    <div className="text-gray-400 text-sm">
+                                        {filterEndDate
+                                            ? `No sessions scheduled between ${new Date(filterDate).toLocaleDateString()} and ${new Date(filterEndDate).toLocaleDateString()}`
+                                            : `No sessions scheduled for ${new Date(filterDate).toLocaleDateString()}`
+                                        }
+                                    </div>
                                 </div>
                             ) : (
                                 rangeSessions.map((s) => {
-                                    const badgeVariant = 'blue'
-                                    const badgeText = new Date(s.scheduled_date).toLocaleDateString()
+                                    const sessionDate = new Date(s.scheduled_date)
+                                    const isToday = sessionDate.toDateString() === new Date().toDateString()
+                                    const isTomorrow = sessionDate.toDateString() === new Date(Date.now() + 86400000).toDateString()
+
+                                    let badgeVariant: 'blue' | 'green' | 'gray' | 'red' = 'blue'
+                                    let badgeText = sessionDate.toLocaleDateString()
+
+                                    if (isToday) {
+                                        badgeVariant = 'green'
+                                        badgeText = 'Today'
+                                    } else if (isTomorrow) {
+                                        badgeVariant = 'blue'
+                                        badgeText = 'Tomorrow'
+                                    }
+
                                     return (
                                         <div
                                             key={s.id}
-                                            className="flex items-center justify-between bg-white border border-[#e6eef8] rounded-xl p-3 cursor-pointer hover:bg-gray-50 hover:border-primary transition-colors"
+                                            className="group bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:shadow-lg hover:border-primary transition-all duration-200 hover:-translate-y-0.5"
                                             onClick={() => handleSessionClick(s.id)}
                                         >
-                                            <div className="flex-1 min-w-0">
-                                                <div className="font-bold truncate">{s.patient_name ?? 'Patient'}</div>
-                                                <div className="text-sm text-[#335] truncate">{s.status}</div>
-                                            </div>
-                                            <div className="ml-2 flex-shrink-0">
-                                                <Badge variant={badgeVariant as 'blue' | 'green' | 'gray' | 'red'}>{badgeText}</Badge>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center space-x-4">
+                                                    <div className="flex-shrink-0">
+                                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isToday ? 'bg-green-100 text-green-600' :
+                                                            isTomorrow ? 'bg-blue-100 text-blue-600' :
+                                                                'bg-gray-100 text-gray-600'
+                                                            }`}>
+                                                            <span className="text-lg font-bold">
+                                                                {sessionDate.getDate()}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center space-x-2 mb-1">
+                                                            <h3 className="font-semibold text-gray-900 truncate">
+                                                                {s.patient_name ?? 'Unknown Patient'}
+                                                            </h3>
+                                                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${s.status === 'planned' ? 'bg-blue-100 text-blue-800' :
+                                                                s.status === 'rescheduled' ? 'bg-yellow-100 text-yellow-800' :
+                                                                    'bg-gray-100 text-gray-800'
+                                                                }`}>
+                                                                {s.status.charAt(0).toUpperCase() + s.status.slice(1)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="text-sm text-gray-500">
+                                                            {sessionDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+                                                        </div>
+                                                        {(s.created_by_email || s.updated_by_email || s.updated_at) && (
+                                                            <div className="mt-1 text-xs text-gray-400 truncate">
+                                                                {s.updated_at && s.updated_by_email ? (
+                                                                    <>Updated by <span className="font-medium text-gray-500">{s.updated_by_email}</span> · {new Date(s.updated_at).toLocaleString()}</>
+                                                                ) : s.created_by_email ? (
+                                                                    <>Created by <span className="font-medium text-gray-500">{s.created_by_email}</span>{s.created_at ? ` · ${new Date(s.created_at).toLocaleString()}` : ''}</>
+                                                                ) : null}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center space-x-3">
+                                                    <Badge variant={badgeVariant}>{badgeText}</Badge>
+                                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     )

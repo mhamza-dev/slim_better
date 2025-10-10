@@ -3,6 +3,7 @@ import patientsReducer from './patientsSlice'
 import buyedPackagesReducer from './buyedPackagesSlice'
 import sessionsReducer from './sessionsSlice'
 import transactionsReducer from './transactionsSlice'
+import packageDetailsReducer from './packageDetailsSlice'
 
 export const store = configureStore({
     reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
         buyedPackages: buyedPackagesReducer,
         sessions: sessionsReducer,
         transactions: transactionsReducer,
+        packageDetails: packageDetailsReducer,
     },
 })
 

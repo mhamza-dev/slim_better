@@ -7,7 +7,6 @@ export type CreatePackageInput = {
     no_of_sessions: number
     total_payment: number
     advance_payment: number
-    paid_payment: number
     gap_between_sessions: number
     start_date: string
     created_by: string
@@ -33,6 +32,7 @@ export async function fetchDashboardPackages(limit = 1000): Promise<DashboardPac
     const { data: pkgs, error: pkgErr } = await supabase
         .from('buyed_packages')
         .select('id,total_payment,paid_payment,advance_payment,no_of_sessions,gap_between_sessions,start_date,patients(name)')
+        .eq('is_deleted', false)
         .order('start_date', { ascending: false })
         .limit(limit)
     if (pkgErr) throw pkgErr
@@ -95,6 +95,7 @@ export async function fetchPackagesByPatient(patientId: number): Promise<BuyedPa
     const { data: pkgs, error: pkgErr } = await supabase
         .from('buyed_packages')
         .select('id,patient_id,no_of_sessions,total_payment,advance_payment,paid_payment,gap_between_sessions,start_date,created_by,creator:created_by(id,email)')
+        .eq('is_deleted', false)
         .eq('patient_id', patientId)
         .order('id', { ascending: false })
     if (pkgErr) throw pkgErr
@@ -166,7 +167,7 @@ export async function updatePackageById(id: number, data: Partial<BuyedPackage>)
 export async function deletePackageById(id: number): Promise<void> {
     const { error } = await supabase
         .from('buyed_packages')
-        .delete()
+        .update({ is_deleted: true } as unknown as Record<string, unknown>)
         .eq('id', id)
     if (error) throw error
 }

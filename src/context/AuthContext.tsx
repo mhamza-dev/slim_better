@@ -16,7 +16,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false)
         })
 
-        const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log('Auth state change:', event, session?.user?.email)
             const sessionUser = session?.user
             setUser(sessionUser ? { id: sessionUser.id, email: sessionUser.email ?? null } : null)
         })
@@ -41,7 +42,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return {}
         },
         async signOut() {
-            await supabase.auth.signOut()
+            try {
+                // First check if there's an active session
+                const { data: { session } } = await supabase.auth.getSession()
+
+                if (!session) {
+                    // No active session, just clear local state
+                    console.log('No active session found, clearing local state')
+                    setUser(null)
+                    return
+                }
+
+                // There's an active session, try to sign out from server
+                const { error } = await supabase.auth.signOut()
+                if (error) {
+                    console.error('Sign out error:', error)
+                    // Even if server sign out fails, clear local state
+                    setUser(null)
+                    throw error
+                }
+            } catch (error) {
+                console.error('Sign out failed:', error)
+                // Always clear local state even if server call fails
+                setUser(null)
+
+                // Don't throw the error if it's just a missing session
+                if (error instanceof Error && error.message.includes('Auth session missing')) {
+                    console.log('Session already expired, clearing local state')
+                    return
+                }
+
+                throw error
+            }
         },
     }), [user, loading])
 

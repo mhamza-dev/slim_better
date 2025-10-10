@@ -31,18 +31,18 @@ export const addTransaction = createAppAsyncThunk<{ packageId: number }, { buyed
     }
 )
 
-export const deleteTransaction = createAppAsyncThunk<{ packageId: number }, { id: number; buyed_package_id: number }>(
+export const deleteTransaction = createAppAsyncThunk<{ packageId: number }, { id: number; buyed_package_id: number; updated_by?: string | null }>(
     'transactions/delete',
-    async ({ id, buyed_package_id }) => {
-        await svcDeletePaymentAndUpdatePackage(id)
+    async ({ id, buyed_package_id, updated_by }) => {
+        await svcDeletePaymentAndUpdatePackage(id, updated_by)
         return { packageId: buyed_package_id }
     }
 )
 
-export const updateTransaction = createAppAsyncThunk<{ packageId: number }, { id: number; buyed_package_id: number; amount?: number; date?: string | null }>(
+export const updateTransaction = createAppAsyncThunk<{ packageId: number }, { id: number; buyed_package_id: number; amount?: number; date?: string | null; updated_by?: string | null }>(
     'transactions/update',
-    async ({ id, buyed_package_id, amount, date }) => {
-        await svcUpdatePaymentAndUpdatePackage(id, { amount, date })
+    async ({ id, buyed_package_id, amount, date, updated_by }) => {
+        await svcUpdatePaymentAndUpdatePackage(id, { amount, date, updated_by })
         return { packageId: buyed_package_id }
     }
 )

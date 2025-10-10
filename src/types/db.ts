@@ -8,6 +8,7 @@ export type Patient = {
     created_by: string | null
     created_at: string | null
     updated_at: string | null
+    creator_email?: string | null // Helper for display
 }
 
 export type BuyedPackage = {
@@ -39,9 +40,13 @@ export type Session = {
     scheduled_date: string // YYYY-MM-DD
     actual_date: string | null // if rescheduled/completed
     status: 'planned' | 'completed' | 'missed' | 'rescheduled'
-    updated_by: string | null // auth user who last updated/rescheduled
+    created_by: string | null
     created_at: string | null
     updated_at: string | null
+    updated_by: string | null
+    // denormalized helper from profiles
+    creator_email?: string | null
+    updated_by_email?: string | null
 }
 
 

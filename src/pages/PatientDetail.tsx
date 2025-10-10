@@ -18,6 +18,7 @@ import { fetchSessionsByPackage as fetchSessionsByPackageThunk, rescheduleSessio
 import { fetchTransactionsByPackage as fetchTransactionsByPackageThunk, addTransaction as addTransactionThunk, deleteTransaction as deleteTransactionThunk } from '../store/transactionsSlice'
 import { FormBuilder, type FormFieldConfig } from '../components/ui/Form'
 import { createPackage } from '../services/packagesService'
+import { toISODate } from '../utils/date'
 
 const EMPTY_ARRAY: never[] = []
 
@@ -67,9 +68,16 @@ export default function PatientDetail() {
 
     async function removePatient() {
         if (!confirm('Delete this patient?')) return
-        const { error } = await supabase.from('patients').delete().eq('id', id)
-        if (error) { alert(error.message); return }
-        navigate('/patients')
+        try {
+            // Soft delete patient and related packages
+            const { error } = await supabase.from('patients').update({ is_deleted: true }).eq('id', id)
+            if (error) throw error
+            const { error: pkgErr } = await supabase.from('buyed_packages').update({ is_deleted: true }).eq('patient_id', id)
+            if (pkgErr) throw pkgErr
+            navigate('/patients')
+        } catch (e: any) {
+            alert(e?.message || 'Failed to delete')
+        }
     }
 
     const age = patient?.date_of_birth ? Math.floor((Date.now() - new Date(patient.date_of_birth).getTime()) / (1000 * 60 * 60 * 24 * 365.25)) : null
@@ -127,6 +135,7 @@ function SessionsList({ packageId, patientId }: { packageId: number; patientId: 
     const dispatch = useAppDispatch()
     const rows = useAppSelector((s) => s.sessions.itemsByPackageId[packageId] ?? (EMPTY_ARRAY as unknown as import('../types/db').Session[]))
     const loading = useAppSelector((s) => s.sessions.loadingByPackageId[packageId])
+    const { user } = useAuth()
 
     useEffect(() => {
         dispatch(fetchSessionsByPackageThunk(packageId))
@@ -135,10 +144,14 @@ function SessionsList({ packageId, patientId }: { packageId: number; patientId: 
     const reschedule = async (id: number) => {
         const picked = prompt('Pick new date (YYYY-MM-DD)')
         if (!picked) return
-        const d = new Date(picked)
+
+        // Use timezone-safe date handling to avoid date shifting issues
+        const normalizedDate = toISODate(picked)
+        const d = new Date(normalizedDate)
         if (d.getDay() === 0) d.setDate(d.getDate() + 1)
-        const newISO = d.toISOString().slice(0, 10)
-        const result = await dispatch(rescheduleSessionThunk({ sessionId: id, packageId, newDateISO: newISO }))
+        const newISO = toISODate(d)
+
+        const result = await dispatch(rescheduleSessionThunk({ sessionId: id, packageId, newDateISO: newISO, updated_by: user?.id || null }))
         if (rescheduleSessionThunk.rejected.match(result)) {
             alert(result.error.message || 'Failed to reschedule')
         } else {
@@ -152,102 +165,148 @@ function SessionsList({ packageId, patientId }: { packageId: number; patientId: 
     if (loading) return <div className="p-3 text-sm">Loading…</div>
 
     return (
-        <div className="space-y-2 max-h-96 overflow-y-auto">
-            <div className="font-semibold text-primaryDark">Sessions</div>
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+            <div className="flex items-center justify-between">
+                <div className="font-semibold text-primaryDark">Sessions</div>
+            </div>
             {rows.length === 0 ? (
                 <div className="text-sm text-gray-600">No sessions yet</div>
-            ) : rows.map((s) => (
-                <div key={s.id} className={`p-3 rounded-lg border ${s.status === 'completed' ? 'bg-green-50 border-green-200' : s.status === 'rescheduled' ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'}`}>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <div className="font-medium">Session {s.session_number}</div>
-                            <div className="text-sm text-gray-600">{new Date(s.scheduled_date).toLocaleDateString()} ({new Date(s.scheduled_date).toLocaleDateString('en-US', { weekday: 'long' })})</div>
-                            <div className="text-xs text-gray-500">Status: {s.status}</div>
-                        </div>
-                        {s.status !== 'completed' && (
-                            <div className="flex gap-2">
-                                <button className="px-2 py-1 text-sm bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-200" onClick={() => reschedule(s.id)}>Reschedule</button>
-                                <button className="px-2 py-1 text-sm bg-green-50 border border-green-200 rounded-lg hover:bg-green-200" onClick={async () => {
-                                    const result = await dispatch(completeSessionThunk({ sessionId: s.id, packageId }))
-                                    if (completeSessionThunk.rejected.match(result)) {
-                                        alert(result.error.message || 'Failed to complete')
-                                    } else {
-                                        // Refresh sessions list to show updated status
-                                        await dispatch(fetchSessionsByPackageThunk(packageId))
-                                        // Also refresh package list (completed count and next date)
-                                        await dispatch(fetchPackagesByPatient(patientId))
-                                    }
-                                }}>Complete</button>
-                            </div>
-                        )}
+            ) : (
+                <div className="relative pl-3">
+                    <div className="absolute left-0 top-0 bottom-0 w-px bg-gray-200" />
+                    <div className="space-y-2">
+                        {rows.map((s) => {
+                            const badge = s.status === 'completed'
+                                ? 'bg-green-100 text-green-700 border-green-200'
+                                : s.status === 'rescheduled'
+                                    ? 'bg-amber-100 text-amber-700 border-amber-200'
+                                    : 'bg-blue-100 text-blue-700 border-blue-200'
+                            return (
+                                <div key={s.id} className="relative">
+                                    <div className="absolute -left-[7px] top-4 w-3 h-3 rounded-full bg-white border border-gray-300" />
+                                    <div className="p-3 rounded-xl border bg-white">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <div className="font-medium truncate">Session {s.session_number}</div>
+                                                    <span className={`px-2 py-0.5 rounded-full text-[11px] border ${badge}`}>{s.status}</span>
+                                                </div>
+                                                <div className="text-sm text-gray-600">
+                                                    {new Date(s.scheduled_date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+                                                </div>
+                                                <div className="text-[11px] text-gray-500 mt-1 truncate">
+                                                    {s.updated_at && s.updated_by_email ? (
+                                                        <>Updated by <span className="font-medium">{s.updated_by_email}</span> · {new Date(s.updated_at).toLocaleString()}</>
+                                                    ) : s.creator_email ? (
+                                                        <>Created by <span className="font-medium">{s.creator_email}</span>{s.created_at ? ` · ${new Date(s.created_at).toLocaleString()}` : ''}</>
+                                                    ) : null}
+                                                </div>
+                                            </div>
+                                            {s.status !== 'completed' && (
+                                                <div className="flex gap-2 shrink-0">
+                                                    <button className="px-2.5 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100" onClick={() => reschedule(s.id)}>Reschedule</button>
+                                                    <button className="px-2.5 py-1 text-xs bg-green-50 border border-green-200 rounded-lg hover:bg-green-100" onClick={async () => {
+                                                        const result = await dispatch(completeSessionThunk({ sessionId: s.id, packageId, updated_by: user?.id || null }))
+                                                        if (completeSessionThunk.rejected.match(result)) {
+                                                            alert(result.error.message || 'Failed to complete')
+                                                        } else {
+                                                            await dispatch(fetchSessionsByPackageThunk(packageId))
+                                                            await dispatch(fetchPackagesByPatient(patientId))
+                                                        }
+                                                    }}>Complete</button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        })}
                     </div>
                 </div>
-            ))}
+            )}
         </div>
     )
 }
 
 function TransactionsList({ packageId, patientId }: { packageId: number; patientId: number }) {
     const dispatch = useAppDispatch()
-    const rows = useAppSelector((s) => (s as any).transactions.itemsByPackageId[packageId] || []) as Array<{ id: number; amount: number; date: string | null; creator_email?: string | null }>
+    const rows = useAppSelector((s) => (s as any).transactions.itemsByPackageId[packageId] || []) as Array<{ id: number; amount: number; date: string | null; creator_email?: string | null; updated_by_email?: string | null; created_at?: string | null; updated_at?: string | null }>
     const loading = useAppSelector((s) => (s as any).transactions.loadingByPackageId[packageId]) as boolean | undefined
     const [adding, setAdding] = useState(false)
     const [open, setOpen] = useState(false)
+    const { user } = useAuth()
     useEffect(() => {
         dispatch(fetchTransactionsByPackageThunk(packageId as unknown as number))
     }, [dispatch, packageId])
 
     return (
-        <div className="space-y-2 max-h-96 overflow-y-auto">
+        <div className="space-y-3 max-h-96 overflow-y-auto">
             <div className="flex items-center justify-between">
                 <div className="font-semibold text-primaryDark">Transactions</div>
-                <button className="px-2 py-1 text-sm bg-white border rounded-lg hover:bg-gray-50" onClick={() => setOpen(true)}>Add Payment</button>
+                <button className="px-2.5 py-1 text-sm bg-white border rounded-lg hover:bg-gray-50" onClick={() => setOpen(true)}>Add Payment</button>
             </div>
             {loading ? (
                 <div className="p-3 text-sm">Loading…</div>
             ) : rows.length === 0 ? (
                 <div className="text-sm text-gray-600">No transactions</div>
-            ) : rows.map((t) => (
-                <div key={t.id} className="p-3 rounded-lg border bg-white">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <div className="text-sm text-gray-600">{t.date ? new Date(t.date).toLocaleDateString() : '-'}</div>
-                            <div className="text-xs text-gray-500">{t.creator_email ? `By ${t.creator_email}` : ''}</div>
+            ) : (
+                <div className="space-y-2">
+                    {rows.map((t) => (
+                        <div key={t.id} className="p-3 rounded-xl border bg-white">
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <div className="text-sm text-gray-600">{t.date ? new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}</div>
+                                        <span className="px-2 py-0.5 rounded-full text-[11px] bg-slate-100 text-slate-700 border border-slate-200">Payment</span>
+                                    </div>
+                                    <div className="text-[11px] text-gray-500 truncate">
+                                        {t.updated_by_email ? (
+                                            <>Updated by <span className="font-medium">{t.updated_by_email}</span>{t.updated_at ? ` · ${new Date(t.updated_at).toLocaleString()}` : ''}</>
+                                        ) : t.creator_email ? (
+                                            <>Added by <span className="font-medium">{t.creator_email}</span>{t.created_at ? ` · ${new Date(t.created_at).toLocaleString()}` : ''}</>
+                                        ) : null}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <div className="font-semibold">PKR {t.amount.toLocaleString('en-PK', { maximumFractionDigits: 0 })}</div>
+                                    <button className="px-2 py-1 text-xs bg-gray-50 border rounded-lg hover:bg-gray-100" onClick={async () => {
+                                        const newAmount = prompt('Update amount (PKR):', String(t.amount))
+                                        if (!newAmount) return
+                                        const newDate = prompt('Update date (YYYY-MM-DD):', t.date ?? toISODate(new Date()))
+
+                                        // Use timezone-safe date handling to avoid date shifting issues
+                                        const normalizedDate = newDate ? toISODate(newDate) : null
+
+                                        // @ts-ignore
+                                        const { updateTransaction: updateTx } = await import('../store/transactionsSlice')
+                                        // update
+                                        const result = await (dispatch as unknown as (args: unknown) => Promise<unknown>)(updateTx({ id: t.id, buyed_package_id: packageId, amount: Number(newAmount), date: normalizedDate, updated_by: user?.id || null }))
+                                        if (updateTx.fulfilled.match(result)) {
+                                            // Refresh transactions list to show updated data
+                                            await dispatch(fetchTransactionsByPackageThunk(packageId))
+                                            // Refresh packages to update paid_payment
+                                            await dispatch(fetchPackagesByPatient(patientId))
+                                        } else {
+                                            alert('Failed to update payment')
+                                        }
+                                    }}>Edit</button>
+                                    <RoleGuardDelete createdByEmail={t.creator_email} onDelete={async () => {
+                                        if (!confirm('Delete this payment?')) return
+                                        await dispatch(deleteTransactionThunk({ id: t.id, buyed_package_id: packageId, updated_by: user?.id || null }))
+                                        await dispatch(fetchTransactionsByPackageThunk(packageId))
+                                        await dispatch(fetchPackagesByPatient(patientId))
+                                    }} />
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <div className="font-semibold">PKR {t.amount.toLocaleString('en-PK', { maximumFractionDigits: 0 })}</div>
-                            <button className="px-2 py-1 text-xs bg-gray-50 border rounded-lg hover:bg-gray-100" onClick={async () => {
-                                const newAmount = prompt('Update amount (PKR):', String(t.amount))
-                                if (!newAmount) return
-                                const newDate = prompt('Update date (YYYY-MM-DD):', t.date ?? new Date().toISOString().slice(0, 10))
-                                // @ts-ignore
-                                const { updateTransaction: updateTx } = await import('../store/transactionsSlice')
-                                // update
-                                const result = await (dispatch as unknown as (args: unknown) => Promise<unknown>)(updateTx({ id: t.id, buyed_package_id: packageId, amount: Number(newAmount), date: newDate || null }))
-                                if (updateTx.fulfilled.match(result)) {
-                                    // Refresh transactions list to show updated data
-                                    await dispatch(fetchTransactionsByPackageThunk(packageId))
-                                    // Refresh packages to update paid_payment
-                                    await dispatch(fetchPackagesByPatient(patientId))
-                                } else {
-                                    alert('Failed to update payment')
-                                }
-                            }}>Edit</button>
-                            <RoleGuardDelete createdByEmail={t.creator_email} onDelete={async () => {
-                                if (!confirm('Delete this payment?')) return
-                                await dispatch(deleteTransactionThunk({ id: t.id, buyed_package_id: packageId }))
-                                await dispatch(fetchTransactionsByPackageThunk(packageId))
-                                await dispatch(fetchPackagesByPatient(patientId))
-                            }} />
-                        </div>
-                    </div>
+                    ))}
                 </div>
-            ))}
+            )}
 
             {open && (
-                <div className="p-3 border rounded-lg bg-white">
+                <div className="p-3 border rounded-xl bg-white">
                     <FormBuilder
-                        initialValues={{ amount: 0, date: new Date().toISOString().slice(0, 10) }}
+                        initialValues={{ amount: 0, date: toISODate(new Date()) }}
                         validationSchema={Yup.object({ amount: Yup.number().min(1).required(), date: Yup.string().required() })}
                         fields={[
                             { type: 'number', name: 'amount', label: 'Amount (PKR)', min: 1 },
@@ -256,7 +315,7 @@ function TransactionsList({ packageId, patientId }: { packageId: number; patient
                         onSubmit={async (values) => {
                             setAdding(true)
                             try {
-                                await dispatch(addTransactionThunk({ buyed_package_id: packageId, amount: Number(values.amount as number), date: values.date as string }))
+                                await dispatch(addTransactionThunk({ buyed_package_id: packageId, amount: Number(values.amount as number), date: values.date as string, created_by: user?.id || undefined }))
                                 // Update package paid_payment by refetching list
                                 await dispatch(fetchTransactionsByPackageThunk(packageId))
                                 await dispatch(fetchPackagesByPatient(patientId))
@@ -289,9 +348,8 @@ function BuyedPackageForm({ patientId, items, user, patientName }: { patientId: 
         no_of_sessions: 0,
         total_payment: 0,
         advance_payment: 0,
-        paid_payment: 0,
         gap_between_sessions: 7,
-        start_date: new Date().toISOString().slice(0, 10),
+        start_date: toISODate(new Date()),
         created_by: user.id,
     }
 
@@ -457,7 +515,6 @@ function BuyedPackageForm({ patientId, items, user, patientName }: { patientId: 
                         { type: 'number', name: 'gap_between_sessions', label: 'Gap (days)', min: 0 },
                         { type: 'date', name: 'start_date', label: 'Start Date' },
                         { type: 'number', name: 'total_payment', label: 'Total Payment', min: 0 },
-                        { type: 'number', name: 'paid_payment', label: 'Paid Payment', min: 0 },
                         { type: 'number', name: 'advance_payment', label: 'Advance Payment', min: 0 },
                     ] as FormFieldConfig[]}
                     onSubmit={async (values) => {
@@ -466,7 +523,6 @@ function BuyedPackageForm({ patientId, items, user, patientName }: { patientId: 
                             no_of_sessions: Number(values.no_of_sessions as number),
                             total_payment: Number(values.total_payment as number),
                             advance_payment: Number(values.advance_payment as number),
-                            paid_payment: Number(values.paid_payment as number),
                             gap_between_sessions: Number(values.gap_between_sessions as number),
                             start_date: values.start_date as string,
                             created_by: values.created_by as string,
