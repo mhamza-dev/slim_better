@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Navigate } from 'react-router-dom'
-import { Mail, Lock } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
 
 export default function Landing() {
     const { user, signIn } = useAuth()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
     const videoSrc = (import.meta as any).env?.VITE_HERO_VIDEO_URL || '/hero.mp4'
@@ -113,11 +114,18 @@ export default function Landing() {
                                     <input
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         required
                                         placeholder="••••••••"
-                                        className="w-full pl-9 pr-3 py-2 h-10 sm:h-[42px] rounded-lg bg-white/10 text-white placeholder-white/70 border border-white/40 focus:outline-none focus:ring-2 focus:ring-white/60"
+                                        className="w-full pl-9 pr-10 py-2 h-10 sm:h-[42px] rounded-lg bg-white/10 text-white placeholder-white/70 border border-white/40 focus:outline-none focus:ring-2 focus:ring-white/60"
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-2.5 text-white/70 hover:text-white/90 transition-colors"
+                                    >
+                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
                                 </div>
                             </div>
                         </div>

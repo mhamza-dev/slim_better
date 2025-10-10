@@ -6,6 +6,7 @@ import { useAppDispatch } from '../store/hooks'
 import { updatePackage, fetchPackagesByPatient } from '../store/buyedPackagesSlice'
 import type { BuyedPackage } from '../types/db'
 import { FormBuilder, type FormFieldConfig } from './ui/Form'
+import { useAuth } from '../hooks/useAuth'
 
 interface PackageEditModalProps {
     packageId: number | null
@@ -16,6 +17,7 @@ interface PackageEditModalProps {
 
 export function PackageEditModal({ packageId, patientId, isOpen, onClose }: PackageEditModalProps) {
     const dispatch = useAppDispatch()
+    const { user } = useAuth()
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [packageData, setPackageData] = useState<BuyedPackage | null>(null)
@@ -63,7 +65,6 @@ export function PackageEditModal({ packageId, patientId, isOpen, onClose }: Pack
         no_of_sessions: Yup.number().min(0).required('Number of sessions is required'),
         total_payment: Yup.number().min(0).required('Total payment is required'),
         advance_payment: Yup.number().min(0).required('Advance payment is required').max(Yup.ref('total_payment'), 'Advance payment cannot exceed total payment'),
-        paid_payment: Yup.number().min(0).required('Paid payment is required').max(Yup.ref('total_payment'), 'Paid payment cannot exceed total payment'),
         gap_between_sessions: Yup.number().min(0).required('Gap between sessions is required'),
     })
 
@@ -115,8 +116,16 @@ export function PackageEditModal({ packageId, patientId, isOpen, onClose }: Pack
                                     { type: 'number', name: 'advance_payment', label: 'Advance Payment *', min: 0 },
                                 ] as FormFieldConfig[]}
                                 onSubmit={async (values) => {
-                                    console.log('Values:', values)
-                                    if (!packageId) return
+                                    console.log('Form Values:', values)
+                                    console.log('Package ID:', packageId)
+                                    console.log('Patient ID:', patientId)
+                                    console.log('User ID:', user?.id)
+
+                                    if (!packageId) {
+                                        setError('Package ID is missing')
+                                        return
+                                    }
+
                                     setLoading(true)
                                     setError(null)
                                     try {
@@ -125,12 +134,21 @@ export function PackageEditModal({ packageId, patientId, isOpen, onClose }: Pack
                                             total_payment: Number(values.total_payment as number),
                                             advance_payment: Number(values.advance_payment as number),
                                             gap_between_sessions: Number(values.gap_between_sessions as number),
+                                            updated_by: user?.id || null,
                                         }
-                                        await dispatch(updatePackage({ id: packageId, patient_id: patientId, data: updateData }))
-                                        await dispatch(fetchPackagesByPatient(patientId))
-                                        onClose()
+                                        console.log('Update Data:', updateData)
+
+                                        const result = await dispatch(updatePackage({ id: packageId, patient_id: patientId, data: updateData }))
+                                        console.log('Update Result:', result)
+
+                                        if (updatePackage.fulfilled.match(result)) {
+                                            await dispatch(fetchPackagesByPatient(patientId))
+                                            onClose()
+                                        } else {
+                                            throw new Error(result.error?.message || 'Failed to update package')
+                                        }
                                     } catch (err) {
-                                        console.error(err)
+                                        console.error('Update Error:', err)
                                         setError(err instanceof Error ? err.message : 'Failed to update package')
                                     } finally {
                                         setLoading(false)

@@ -94,7 +94,7 @@ export async function fetchPackagesByPatient(patientId: number): Promise<BuyedPa
     // Step 1: base packages with creator
     const { data: pkgs, error: pkgErr } = await supabase
         .from('buyed_packages')
-        .select('id,patient_id,no_of_sessions,total_payment,advance_payment,paid_payment,gap_between_sessions,start_date,created_by,creator:created_by(id,email)')
+        .select('id,patient_id,no_of_sessions,total_payment,advance_payment,paid_payment,gap_between_sessions,start_date,created_by,created_at,updated_by,updated_at,creator:created_by(id,email)')
         .eq('is_deleted', false)
         .eq('patient_id', patientId)
         .order('id', { ascending: false })
@@ -150,13 +150,14 @@ export async function fetchPackagesByPatient(patientId: number): Promise<BuyedPa
             created_by: r.created_by,
             created_at: r.created_at ?? null,
             updated_at: r.updated_at ?? null,
+            updated_by: r.updated_by ?? null,
             creator: r.creator ?? null,
         }
         return pkg
     })
 }
 
-export async function updatePackageById(id: number, data: Partial<BuyedPackage>): Promise<void> {
+export async function updatePackageById(id: number, data: Partial<BuyedPackage> & { updated_by?: string | null }): Promise<void> {
     const { error } = await supabase
         .from('buyed_packages')
         .update(data as Record<string, unknown>)

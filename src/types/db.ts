@@ -27,6 +27,7 @@ export type BuyedPackage = {
     created_by: string | null
     created_at: string | null
     updated_at: string | null
+    updated_by: string | null
 }
 // Note: created_by is a UUID (string) referencing auth.users(id)
 
