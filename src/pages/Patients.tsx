@@ -21,6 +21,7 @@ import { useNavigate } from 'react-router-dom'
 export default function Patients() {
     const dispatch = useAppDispatch()
     const navigate = useNavigate()
+    const { user } = useAuth()
     const patients = useAppSelector((s) => s.patients.items)
     const loading = useAppSelector((s) => s.patients.loading)
 
@@ -60,7 +61,7 @@ export default function Patients() {
         }
 
         try {
-            await softDeletePatient(patientId)
+            await softDeletePatient(patientId, user?.id || null)
             // Refresh the patients list
             dispatch(fetchPatients())
         } catch (error) {

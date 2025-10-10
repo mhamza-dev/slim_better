@@ -32,10 +32,10 @@ export const addPackage = createAppAsyncThunk<{ patientId: number; packageId: nu
     }
 )
 
-export const deletePackage = createAppAsyncThunk<{ patientId: number }, { id: number; patientId: number }>(
+export const deletePackage = createAppAsyncThunk<{ patientId: number }, { id: number; patientId: number; updatedBy?: string | null }>(
     'buyedPackages/delete',
     async (payload) => {
-        await deletePackageById(payload.id)
+        await deletePackageById(payload.id, payload.updatedBy)
         return { patientId: payload.patientId }
     }
 )

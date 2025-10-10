@@ -165,10 +165,25 @@ export async function updatePackageById(id: number, data: Partial<BuyedPackage> 
     if (error) throw error
 }
 
-export async function deletePackageById(id: number): Promise<void> {
+export async function deletePackageById(id: number, updatedBy?: string | null): Promise<void> {
+    // First, soft-delete all related sessions
+    const { error: sessionsError } = await supabase
+        .from('sessions')
+        .update({
+            is_deleted: true,
+            updated_by: updatedBy || null
+        } as unknown as Record<string, unknown>)
+        .eq('buyed_package_id', id)
+        .eq('is_deleted', false) // Only update sessions that aren't already deleted
+    if (sessionsError) throw sessionsError
+
+    // Then soft-delete the package
     const { error } = await supabase
         .from('buyed_packages')
-        .update({ is_deleted: true } as unknown as Record<string, unknown>)
+        .update({
+            is_deleted: true,
+            updated_by: updatedBy || null
+        } as unknown as Record<string, unknown>)
         .eq('id', id)
     if (error) throw error
 }

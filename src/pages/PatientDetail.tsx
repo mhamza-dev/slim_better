@@ -428,7 +428,7 @@ function BuyedPackageForm({ patientId, items, user, patientName }: { patientId: 
         console.log('Attempting to delete package:', packageId, 'for patient:', patientId)
 
         try {
-            const result = await dispatch(deletePackage({ id: packageId, patientId: Number(patientId) }))
+            const result = await dispatch(deletePackage({ id: packageId, patientId: Number(patientId), updatedBy: user?.id || null }))
 
             console.log('Delete result:', result)
 

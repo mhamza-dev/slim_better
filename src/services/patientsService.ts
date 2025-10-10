@@ -61,20 +61,61 @@ export async function fetchPatientsList(limit = 200): Promise<Patient[]> {
     return patients
 }
 
-export async function softDeletePatient(id: number): Promise<void> {
-    // Soft delete patient and their packages
-    const { error } = await supabase
-        .from('patients')
-        .update({ is_deleted: true } as unknown as Record<string, unknown>)
-        .eq('id', id)
-    if (error) throw error
+export async function softDeletePatient(id: number, updatedBy?: string | null): Promise<void> {
+    // First, get all package IDs for this patient
+    const { data: packages, error: packagesError } = await supabase
+        .from('buyed_packages')
+        .select('id')
+        .eq('patient_id', id)
+        .eq('is_deleted', false)
+    if (packagesError) throw packagesError
 
-    // Also soft-delete related buyed_packages
+    const packageIds = packages?.map(p => p.id) || []
+
+    // Soft-delete all sessions for these packages
+    if (packageIds.length > 0) {
+        const { error: sessionsError } = await supabase
+            .from('sessions')
+            .update({
+                is_deleted: true,
+                updated_by: updatedBy || null
+            } as unknown as Record<string, unknown>)
+            .in('buyed_package_id', packageIds)
+            .eq('is_deleted', false)
+        if (sessionsError) throw sessionsError
+
+        // Soft-delete all transactions for these packages
+        const { error: transactionsError } = await supabase
+            .from('transactions_history')
+            .update({
+                is_deleted: true,
+                updated_by: updatedBy || null
+            } as unknown as Record<string, unknown>)
+            .in('buyed_package_id', packageIds)
+            .eq('is_deleted', false)
+        if (transactionsError) throw transactionsError
+    }
+
+    // Soft-delete all packages for this patient
     const { error: pkgErr } = await supabase
         .from('buyed_packages')
-        .update({ is_deleted: true } as unknown as Record<string, unknown>)
+        .update({
+            is_deleted: true,
+            updated_by: updatedBy || null
+        } as unknown as Record<string, unknown>)
         .eq('patient_id', id)
+        .eq('is_deleted', false)
     if (pkgErr) throw pkgErr
+
+    // Finally, soft-delete the patient
+    const { error } = await supabase
+        .from('patients')
+        .update({
+            is_deleted: true,
+            updated_by: updatedBy || null
+        } as unknown as Record<string, unknown>)
+        .eq('id', id)
+    if (error) throw error
 }
 
 
