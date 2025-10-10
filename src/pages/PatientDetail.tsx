@@ -401,7 +401,7 @@ function BuyedPackageForm({ patientId, items, user, patientName }: { patientId: 
                                     {searchTerm ? `No packages found matching "${searchTerm}"` : 'No packages'}
                                 </td></tr>
                             ) : filteredPackages.map((p) => (
-                                <tr key={p.id} className="border-t border-[#e6eef8]">
+                                <tr key={p.id} className="border-t border-[#e6eef8] cursor-pointer" onClick={() => handleViewSessions(p)}>
                                     <td className="p-2 text-xs truncate max-w-[80px]" title={p.created_by === user.id ? 'You' : (p.creator?.email || '-')}>
                                         {p.created_by === user.id ? 'You' : (p.creator?.email || '-')}
                                     </td>
@@ -412,26 +412,19 @@ function BuyedPackageForm({ patientId, items, user, patientName }: { patientId: 
                                     <td className="p-2 text-xs">{p.next_session_date ? new Date(p.next_session_date).toLocaleDateString() : '-'}</td>
                                     <td className="p-2 text-xs">PKR {p.total_payment.toFixed(0)}</td>
                                     <td className="p-2 text-xs">PKR {p.paid_payment.toFixed(0)}</td>
-                                    <td className="p-2 text-xs">PKR {(p.total_payment - (p.paid_payment === 0 ? p.advance_payment : p.paid_payment)).toFixed(0)}</td>
+                                    <td className="p-2 text-xs">PKR {(p.total_payment - (p.paid_payment + p.advance_payment)).toFixed(0)}</td>
                                     <td className="p-2 text-xs">PKR {p.advance_payment.toFixed(0)}</td>
                                     <td className="p-2 text-center">
                                         <div className="flex items-center justify-center gap-1">
                                             <button
-                                                onClick={() => handleViewSessions(p)}
-                                                className="p-1 hover:bg-gray-100 rounded transition-colors"
-                                                title="View all sessions"
-                                            >
-                                                <Eye size={16} className="text-blue-600" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleEditPackage(p.id)}
+                                                onClick={(e) => { e.stopPropagation(); handleEditPackage(p.id) }}
                                                 className="p-1 hover:bg-gray-100 rounded transition-colors"
                                                 title="Edit package"
                                             >
                                                 <Edit size={16} className="text-green-600" />
                                             </button>
                                             <button
-                                                onClick={() => handleDeletePackage(p.id)}
+                                                onClick={(e) => { e.stopPropagation(); handleDeletePackage(p.id) }}
                                                 className="p-1 hover:bg-red-100 rounded transition-colors"
                                                 title="Delete package"
                                             >

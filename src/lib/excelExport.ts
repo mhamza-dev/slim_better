@@ -332,7 +332,7 @@ export async function exportPackagesToExcelWithLogo(packages: Array<{
     'Total Payment (PKR)': pkg.total_payment || 0,
     'Paid Payment (PKR)': pkg.paid_payment || 0,
     'Advance Payment (PKR)': pkg.advance_payment || 0,
-    'Pending Payment (PKR)': (pkg.total_payment || 0) - (pkg.paid_payment === 0 ? pkg.advance_payment : pkg.paid_payment),
+    'Pending Payment (PKR)': (pkg.total_payment || 0) - (pkg.paid_payment + pkg.advance_payment),
   }))
 
   const filename = patientName

@@ -4,12 +4,17 @@ import { createPatient } from '../services/patientsService'
 import Modal from '../components/Modal'
 import { PatientEditModal } from '../components/PatientEditModal'
 import { Button } from '../components/ui/Button'
-import { Plus, Search, Download, Eye, Edit } from 'lucide-react'
+import { Plus, Search, Download, Edit } from 'lucide-react'
 import { Card, CardContent } from '../components/ui/Card'
 import type { Patient } from '../types/db'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { fetchPatients } from '../store/patientsSlice'
 import { exportPatientsToExcelWithLogo } from '../lib/excelExport'
+
+import * as Yup from 'yup'
+import { useAuth } from '../hooks/useAuth'
+import { FormBuilder, type FormFieldConfig } from '../components/ui/Form'
+import { useNavigate } from 'react-router-dom'
 
 function calculateAge(dobIso: string | null): number | null {
     if (!dobIso) return null
@@ -25,6 +30,7 @@ function calculateAge(dobIso: string | null): number | null {
 
 export default function Patients() {
     const dispatch = useAppDispatch()
+    const navigate = useNavigate()
     const patients = useAppSelector((s) => s.patients.items)
     const loading = useAppSelector((s) => s.patients.loading)
 
@@ -123,7 +129,7 @@ export default function Patients() {
                                     </td></tr>
                                 ) : (
                                     filteredPatients.map((p: Patient & { age: number | null }) => (
-                                        <tr key={p.id} className="border-t border-[#e6eef8] hover:bg-blue-50/30 even:bg-blue-50/20">
+                                        <tr key={p.id} className="border-t border-[#e6eef8] hover:bg-blue-50/30 even:bg-blue-50/20 cursor-pointer" onClick={() => navigate(`/patients/${p.id}`)}>
                                             <td className="p-3 truncate max-w-[120px]" title={p.name}>{p.name}</td>
                                             <td className="p-3 text-sm">{p.phone_number}</td>
                                             <td className="p-3 text-sm text-left">{p.age ?? '-'}</td>
@@ -131,22 +137,13 @@ export default function Patients() {
                                             <td className="p-3 text-sm truncate max-w-[120px]" title={p.branch_name ?? ''}>{p.branch_name ?? '-'}</td>
                                             <td className="p-3 text-sm">{p.created_at ? new Date(p.created_at).toLocaleDateString() : '-'}</td>
                                             <td className="p-3 text-right">
-                                                <div className="flex items-center justify-end gap-1">
-                                                    <Link
-                                                        to={`/patients/${p.id}`}
-                                                        className="p-1 hover:bg-blue-100 rounded transition-colors"
-                                                        title="View patient"
-                                                    >
-                                                        <Eye size={20} className="text-blue-600" />
-                                                    </Link>
-                                                    <button
-                                                        onClick={() => handleEditPatient(p.id)}
-                                                        className="p-1 hover:bg-green-100 rounded transition-colors"
-                                                        title="Edit patient"
-                                                    >
-                                                        <Edit size={20} className="text-green-600" />
-                                                    </button>
-                                                </div>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleEditPatient(p.id) }}
+                                                    className="p-1 hover:bg-green-100 rounded transition-colors"
+                                                    title="Edit patient"
+                                                >
+                                                    <Edit size={20} className="text-green-600" />
+                                                </button>
                                             </td>
                                         </tr>
                                     ))
@@ -177,11 +174,6 @@ export default function Patients() {
         </div>
     )
 }
-
-import * as Yup from 'yup'
-import { useAuth } from '../hooks/useAuth'
-import { FormBuilder, type FormFieldConfig } from '../components/ui/Form'
-import { Link } from 'react-router-dom'
 
 function PatientsModalForm({ onDone }: { onDone: () => void }) {
     const [submitting, setSubmitting] = useState(false)
