@@ -219,18 +219,21 @@ function SessionsList({ packageId, patientId }: { packageId: number; patientId: 
                                             )}
                                         </div>
                                         {editingSessionId === s.id && (
-                                            <div className="mt-2 flex items-end gap-2">
-                                                <div>
-                                                    <div className="text-[11px] text-gray-500 mb-1">New date</div>
-                                                    <input
-                                                        type="date"
-                                                        className="px-2 py-1 border rounded-md text-sm"
-                                                        value={editingSessionDate}
-                                                        onChange={(e) => setEditingSessionDate(toISODate(e.target.value))}
-                                                    />
+                                            <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                                <div className="text-[12px] font-medium text-primaryDark mb-2">Reschedule session</div>
+                                                <div className="flex items-end gap-2">
+                                                    <div>
+                                                        <div className="text-[11px] text-gray-500 mb-1">New date</div>
+                                                        <input
+                                                            type="date"
+                                                            className="px-2 py-1.5 border rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                                            value={editingSessionDate}
+                                                            onChange={(e) => setEditingSessionDate(toISODate(e.target.value))}
+                                                        />
+                                                    </div>
+                                                    <button className="px-3 py-1.5 text-xs bg-primary text-white rounded-md shadow-sm hover:opacity-95" onClick={() => submitReschedule(s.id)}>Save</button>
+                                                    <button className="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-md hover:bg-gray-100" onClick={() => { setEditingSessionId(null); setEditingSessionDate('') }}>Cancel</button>
                                                 </div>
-                                                <button className="px-2.5 py-1 text-xs bg-primary text-white rounded-md" onClick={() => submitReschedule(s.id)}>Save</button>
-                                                <button className="px-2.5 py-1 text-xs bg-gray-100 rounded-md" onClick={() => { setEditingSessionId(null); setEditingSessionDate('') }}>Cancel</button>
                                             </div>
                                         )}
                                     </div>
@@ -284,7 +287,7 @@ function TransactionsList({ packageId, patientId }: { packageId: number; patient
                                 setAdding(false)
                             }
                         }}
-                        submitLabel={adding ? 'Saving...' : 'Save Payment'}
+                        submitLabel={adding ? 'Saving…' : 'Save payment'}
                         cancelLabel="Cancel"
                         onCancel={() => setOpen(false)}
                         layout="one-column"
@@ -330,12 +333,12 @@ function TransactionsList({ packageId, patientId }: { packageId: number; patient
                                 </div>
                             </div>
                             {editingTxId === t.id && (
-                                <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
+                                <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
                                     <div>
                                         <div className="text-[11px] text-gray-500 mb-1">Amount (PKR)</div>
                                         <input
                                             type="number"
-                                            className="px-2 py-1 border rounded-md text-sm w-full"
+                                            className="px-2 py-1.5 border rounded-md text-sm w-full bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
                                             value={editingTxAmount}
                                             min={1}
                                             onChange={(e) => setEditingTxAmount(e.target.value)}
@@ -345,13 +348,13 @@ function TransactionsList({ packageId, patientId }: { packageId: number; patient
                                         <div className="text-[11px] text-gray-500 mb-1">Date</div>
                                         <input
                                             type="date"
-                                            className="px-2 py-1 border rounded-md text-sm w-full"
+                                            className="px-2 py-1.5 border rounded-md text-sm w-full bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
                                             value={editingTxDate}
                                             onChange={(e) => setEditingTxDate(toISODate(e.target.value))}
                                         />
                                     </div>
                                     <div className="flex gap-2">
-                                        <button className="px-2.5 py-1 text-xs bg-primary text-white rounded-md" onClick={async () => {
+                                        <button className="px-3 py-1.5 text-xs bg-primary text-white rounded-md shadow-sm hover:opacity-95" onClick={async () => {
                                             const amount = Math.max(1, Number(editingTxAmount || 0))
                                             const date = editingTxDate ? toISODate(editingTxDate) : null
                                             // @ts-ignore
@@ -367,7 +370,7 @@ function TransactionsList({ packageId, patientId }: { packageId: number; patient
                                                 alert('Failed to update payment')
                                             }
                                         }}>Save</button>
-                                        <button className="px-2.5 py-1 text-xs bg-gray-100 rounded-md" onClick={() => { setEditingTxId(null); setEditingTxAmount('0'); setEditingTxDate('') }}>Cancel</button>
+                                        <button className="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-md hover:bg-gray-100" onClick={() => { setEditingTxId(null); setEditingTxAmount('0'); setEditingTxDate('') }}>Cancel</button>
                                     </div>
                                 </div>
                             )}
