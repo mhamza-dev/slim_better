@@ -1,20 +1,35 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import type { Patient, BuyedPackageWithCreator } from '../types/db'
-import { useDispatch, useSelector } from 'react-redux'
-import type { RootState } from '../store'
-import { fetchPackagesByPatient, addPackage, deletePackage } from '../store/buyedPackagesSlice'
+import { useAppDispatch, useAppSelector } from '../store/hooks'
+import { fetchPackagesByPatient, deletePackage } from '../store/buyedPackagesSlice'
 import Modal from '../components/Modal'
 import { PackageEditModal } from '../components/PackageEditModal'
 import { Button } from '../components/ui/Button'
 import { Card, CardContent, CardHeader } from '../components/ui/Card'
 import { Edit, Trash2, PackagePlus, Download, Search, Eye } from 'lucide-react'
-import { Formik, Form, Field } from 'formik'
+//
 import * as Yup from 'yup'
 import { useAuth } from '../hooks/useAuth'
 import type { AuthUser } from '../context/AuthContextTypes'
 import { exportPackagesToExcelWithLogo } from '../lib/excelExport'
+import { generateSessionsClientSide } from '../services/sessionsService'
+import { fetchSessionsByPackage as fetchSessionsByPackageThunk, rescheduleSession as rescheduleSessionThunk, completeSession as completeSessionThunk } from '../store/sessionsSlice'
+import { fetchTransactionsByPackage as fetchTransactionsByPackageThunk, addTransaction as addTransactionThunk, deleteTransaction as deleteTransactionThunk } from '../store/transactionsSlice'
+import { FormBuilder, type FormFieldConfig } from '../components/ui/Form'
+import { createPackage } from '../services/packagesService'
+
+const EMPTY_ARRAY: never[] = []
+
+function RoleGuardDelete({ createdByEmail, onDelete }: { createdByEmail: string | null | undefined; onDelete: () => Promise<void> }) {
+    const { user } = useAuth()
+    const canDelete = !!user?.email && (user.email === createdByEmail)
+    if (!canDelete) return null
+    return (
+        <button className="px-2 py-1 text-xs bg-red-50 border border-red-200 rounded-lg hover:bg-red-100" onClick={onDelete}>Delete</button>
+    )
+}
 
 export default function PatientDetail() {
     const { id } = useParams()
@@ -40,11 +55,10 @@ export default function PatientDetail() {
     useEffect(() => { load() }, [id, load])
 
     // Load packages via Redux slice
-    const dispatch = useDispatch()
-    const pkgState = useSelector((s: RootState) => (s as RootState & { buyedPackages: { itemsByPatientId: Record<number, BuyedPackageWithCreator[]> } }).buyedPackages)
+    const dispatch = useAppDispatch()
+    const pkgState = useAppSelector((s) => s.buyedPackages)
     useEffect(() => {
         if (!id) return
-        // @ts-expect-error - Redux dispatch type issue
         dispatch(fetchPackagesByPatient(Number(id)))
     }, [dispatch, id])
     useEffect(() => {
@@ -72,15 +86,17 @@ export default function PatientDetail() {
                 <div className="space-y-4">
                     <Card>
                         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div>
-                                <div className="text-xs text-gray-500"><a href="/patients" className="hover:underline">Patients</a> <span className="mx-1">›</span> <span className="text-primaryDark">{patient?.name || '—'}</span></div>
-                                <h2 className="text-primaryDark text-lg sm:text-xl">{patient?.name}</h2>
-                                <div className="text-sm text-gray-600">{age !== null ? `${age} yrs` : 'Age —'}</div>
+                            <div className="flex flex-col gap-2">
+                                <div className="text-xs text-gray-500"><Link to="/patients" className="hover:underline">Patients</Link> <span className="mx-1">›</span> <span className="text-primaryDark">{patient?.name || '—'}</span></div>
+                                <div className="flex gap-2 items-end justify-between">
+                                    <h2 className="text-primaryDark text-lg sm:text-xl">{patient?.name}</h2>
+                                    <div className="text-sm text-gray-600">({age !== null ? `${age} yrs` : 'Age —'})</div>
+                                </div>
                             </div>
                             <Button variant="danger" className="gap-2" onClick={removePatient}><Trash2 size={16} /> Delete</Button>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                                 <div>
                                     <div className="text-xs text-[#335] mb-1">Phone</div>
                                     <div className="font-semibold text-primary">{patient?.phone_number}</div>
@@ -101,14 +117,157 @@ export default function PatientDetail() {
                         </CardContent>
                     </Card>
 
-                    <PackageSection patientId={Number(id)} items={packages} user={user as AuthUser} patientName={patient?.name} />
+                    <BuyedPackageForm patientId={Number(id)} items={packages} user={user as AuthUser} patientName={patient?.name} />
                 </div>
             )}
         </div>
     )
 }
 
-function PackageSection({ patientId, items, user, patientName }: { patientId: number; items: BuyedPackageWithCreator[]; user: AuthUser; patientName?: string }) {
+function SessionsList({ packageId, patientId }: { packageId: number; patientId: number }) {
+    const dispatch = useAppDispatch()
+    const rows = useAppSelector((s) => s.sessions.itemsByPackageId[packageId] ?? (EMPTY_ARRAY as unknown as import('../types/db').Session[]))
+    const loading = useAppSelector((s) => s.sessions.loadingByPackageId[packageId])
+
+    useEffect(() => {
+        dispatch(fetchSessionsByPackageThunk(packageId))
+    }, [dispatch, packageId])
+
+    const reschedule = async (id: number) => {
+        const picked = prompt('Pick new date (YYYY-MM-DD)')
+        if (!picked) return
+        const d = new Date(picked)
+        if (d.getDay() === 0) d.setDate(d.getDate() + 1)
+        const newISO = d.toISOString().slice(0, 10)
+        const result = await dispatch(rescheduleSessionThunk({ sessionId: id, packageId, newDateISO: newISO }))
+        if (rescheduleSessionThunk.rejected.match(result)) {
+            alert(result.error.message || 'Failed to reschedule')
+        } else {
+            dispatch(fetchSessionsByPackageThunk(packageId))
+        }
+    }
+
+    if (loading) return <div className="p-3 text-sm">Loading…</div>
+
+    return (
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+            <div className="font-semibold text-primaryDark">Sessions</div>
+            {rows.length === 0 ? (
+                <div className="text-sm text-gray-600">No sessions yet</div>
+            ) : rows.map((s) => (
+                <div key={s.id} className={`p-3 rounded-lg border ${s.status === 'completed' ? 'bg-green-50 border-green-200' : s.status === 'rescheduled' ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'}`}>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <div className="font-medium">Session {s.session_number}</div>
+                            <div className="text-sm text-gray-600">{new Date(s.scheduled_date).toLocaleDateString()} ({new Date(s.scheduled_date).toLocaleDateString('en-US', { weekday: 'long' })})</div>
+                            <div className="text-xs text-gray-500">Status: {s.status}</div>
+                        </div>
+                        {s.status !== 'completed' && (
+                            <div className="flex gap-2">
+                                <button className="px-2 py-1 text-sm bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-200" onClick={() => reschedule(s.id)}>Reschedule</button>
+                                <button className="px-2 py-1 text-sm bg-green-50 border border-green-200 rounded-lg hover:bg-green-200" onClick={async () => {
+                                    const result = await dispatch(completeSessionThunk({ sessionId: s.id, packageId }))
+                                    if (completeSessionThunk.rejected.match(result)) {
+                                        alert(result.error.message || 'Failed to complete')
+                                    } else {
+                                        dispatch(fetchSessionsByPackageThunk(packageId))
+                                        // also refresh package list (completed count and next date)
+                                        dispatch(fetchPackagesByPatient(patientId))
+                                    }
+                                }}>Complete</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ))}
+        </div>
+    )
+}
+
+function TransactionsList({ packageId, patientId }: { packageId: number; patientId: number }) {
+    const dispatch = useAppDispatch()
+    const rows = useAppSelector((s) => (s as any).transactions.itemsByPackageId[packageId] || []) as Array<{ id: number; amount: number; date: string | null; creator_email?: string | null }>
+    const loading = useAppSelector((s) => (s as any).transactions.loadingByPackageId[packageId]) as boolean | undefined
+    const [adding, setAdding] = useState(false)
+    const [open, setOpen] = useState(false)
+    useEffect(() => {
+        dispatch(fetchTransactionsByPackageThunk(packageId as unknown as number))
+    }, [dispatch, packageId])
+
+    return (
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+            <div className="flex items-center justify-between">
+                <div className="font-semibold text-primaryDark">Transactions</div>
+                <button className="px-2 py-1 text-sm bg-white border rounded-lg hover:bg-gray-50" onClick={() => setOpen(true)}>Add Payment</button>
+            </div>
+            {loading ? (
+                <div className="p-3 text-sm">Loading…</div>
+            ) : rows.length === 0 ? (
+                <div className="text-sm text-gray-600">No transactions</div>
+            ) : rows.map((t) => (
+                <div key={t.id} className="p-3 rounded-lg border bg-white">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <div className="text-sm text-gray-600">{t.date ? new Date(t.date).toLocaleDateString() : '-'}</div>
+                            <div className="text-xs text-gray-500">{t.creator_email ? `By ${t.creator_email}` : ''}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="font-semibold">PKR {t.amount.toLocaleString('en-PK', { maximumFractionDigits: 0 })}</div>
+                            <button className="px-2 py-1 text-xs bg-gray-50 border rounded-lg hover:bg-gray-100" onClick={async () => {
+                                const newAmount = prompt('Update amount (PKR):', String(t.amount))
+                                if (!newAmount) return
+                                const newDate = prompt('Update date (YYYY-MM-DD):', t.date ?? new Date().toISOString().slice(0, 10))
+                                // @ts-ignore
+                                const { updateTransaction: updateTx } = await import('../store/transactionsSlice')
+                                // update
+                                await (dispatch as unknown as (args: unknown) => Promise<unknown>)(updateTx({ id: t.id, buyed_package_id: packageId, amount: Number(newAmount), date: newDate || null }))
+                                await dispatch(fetchTransactionsByPackageThunk(packageId))
+                                await dispatch(fetchPackagesByPatient(patientId))
+                            }}>Edit</button>
+                            <RoleGuardDelete createdByEmail={t.creator_email} onDelete={async () => {
+                                if (!confirm('Delete this payment?')) return
+                                await dispatch(deleteTransactionThunk({ id: t.id, buyed_package_id: packageId }))
+                                await dispatch(fetchTransactionsByPackageThunk(packageId))
+                                await dispatch(fetchPackagesByPatient(patientId))
+                            }} />
+                        </div>
+                    </div>
+                </div>
+            ))}
+
+            {open && (
+                <div className="p-3 border rounded-lg bg-white">
+                    <FormBuilder
+                        initialValues={{ amount: 0, date: new Date().toISOString().slice(0, 10) }}
+                        validationSchema={Yup.object({ amount: Yup.number().min(1).required(), date: Yup.string().required() })}
+                        fields={[
+                            { type: 'number', name: 'amount', label: 'Amount (PKR)', min: 1 },
+                            { type: 'date', name: 'date', label: 'Date' },
+                        ] as FormFieldConfig[]}
+                        onSubmit={async (values) => {
+                            setAdding(true)
+                            try {
+                                await dispatch(addTransactionThunk({ buyed_package_id: packageId, amount: Number(values.amount as number), date: values.date as string }))
+                                // Update package paid_payment by refetching list
+                                await dispatch(fetchTransactionsByPackageThunk(packageId))
+                                await dispatch(fetchPackagesByPatient(patientId))
+                                setOpen(false)
+                            } finally {
+                                setAdding(false)
+                            }
+                        }}
+                        submitLabel={adding ? 'Saving...' : 'Save Payment'}
+                        cancelLabel="Cancel"
+                        onCancel={() => setOpen(false)}
+                        layout="one-column"
+                        isSubmitting={adding}
+                    />
+                </div>
+            )}
+        </div>
+    )
+}
+function BuyedPackageForm({ patientId, items, user, patientName }: { patientId: number; items: BuyedPackageWithCreator[]; user: AuthUser; patientName?: string }) {
     const [formOpen, setFormOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
@@ -116,16 +275,14 @@ function PackageSection({ patientId, items, user, patientName }: { patientId: nu
     const [selectedPackage, setSelectedPackage] = useState<BuyedPackageWithCreator | null>(null)
     const [editModalOpen, setEditModalOpen] = useState(false)
     const [editingPackageId, setEditingPackageId] = useState<number | null>(null)
-    const dispatch = useDispatch()
+    const dispatch = useAppDispatch()
     const initial = {
         no_of_sessions: 0,
         total_payment: 0,
         advance_payment: 0,
         paid_payment: 0,
-        sessions_completed: 0,
-        gap_between_sessions: 0,
+        gap_between_sessions: 7,
         start_date: new Date().toISOString().slice(0, 10),
-        next_session_date: '' as string | null,
         created_by: user.id,
     }
 
@@ -134,10 +291,8 @@ function PackageSection({ patientId, items, user, patientName }: { patientId: nu
         total_payment: Yup.number().min(0).required(),
         advance_payment: Yup.number().min(0).required().max(Yup.ref('total_payment')),
         paid_payment: Yup.number().min(0).required().max(Yup.ref('total_payment')),
-        sessions_completed: Yup.number().min(0).required(),
         gap_between_sessions: Yup.number().min(0).required(),
         start_date: Yup.string().required(),
-        next_session_date: Yup.string().nullable(),
         created_by: Yup.string().required(),
     })
 
@@ -156,35 +311,7 @@ function PackageSection({ patientId, items, user, patientName }: { patientId: nu
         )
     }, [items, searchTerm])
 
-    // Calculate all session dates for a package
-    const calculateSessionDates = (pkg: BuyedPackageWithCreator) => {
-        const sessions = []
-        const startDate = new Date(pkg.start_date)
-        const gapDays = pkg.gap_between_sessions
-
-        for (let i = 0; i < pkg.no_of_sessions; i++) {
-            const sessionDate = new Date(startDate)
-            sessionDate.setDate(startDate.getDate() + (i * gapDays))
-
-            // If the session falls on Sunday (0), move it to Monday (1)
-            if (sessionDate.getDay() === 0) {
-                sessionDate.setDate(sessionDate.getDate() + 1)
-            }
-
-            const dayName = sessionDate.toLocaleDateString('en-US', { weekday: 'long' })
-            const isCompleted = i < pkg.sessions_completed
-
-            sessions.push({
-                sessionNumber: i + 1,
-                date: sessionDate,
-                dayName,
-                isCompleted,
-                isUpcoming: !isCompleted && sessionDate >= new Date()
-            })
-        }
-
-        return sessions
-    }
+    // (Removed unused calculateSessionDates)
 
     const handleViewSessions = (pkg: BuyedPackageWithCreator) => {
         setSelectedPackage(pkg)
@@ -204,7 +331,6 @@ function PackageSection({ patientId, items, user, patientName }: { patientId: nu
         console.log('Attempting to delete package:', packageId, 'for patient:', patientId)
 
         try {
-            // @ts-expect-error - Redux dispatch type issue
             const result = await dispatch(deletePackage({ id: packageId, patientId: Number(patientId) }))
 
             console.log('Delete result:', result)
@@ -212,7 +338,6 @@ function PackageSection({ patientId, items, user, patientName }: { patientId: nu
             if (deletePackage.fulfilled.match(result)) {
                 console.log('Delete successful, refreshing packages')
                 // Refresh the packages list
-                // @ts-expect-error - Redux dispatch type issue
                 dispatch(fetchPackagesByPatient(Number(patientId)))
             } else if (deletePackage.rejected.match(result)) {
                 console.error('Delete package rejected:', result.error)
@@ -322,106 +447,58 @@ function PackageSection({ patientId, items, user, patientName }: { patientId: nu
             </div>
 
             <Modal open={formOpen} onClose={() => setFormOpen(false)} title="Add package">
-                <Formik
+                <FormBuilder
                     initialValues={initial}
                     validationSchema={schema}
+                    fields={[
+                        { type: 'number', name: 'no_of_sessions', label: 'Sessions', min: 0 },
+                        { type: 'number', name: 'gap_between_sessions', label: 'Gap (days)', min: 0 },
+                        { type: 'date', name: 'start_date', label: 'Start Date' },
+                        { type: 'number', name: 'total_payment', label: 'Total Payment', min: 0 },
+                        { type: 'number', name: 'paid_payment', label: 'Paid Payment', min: 0 },
+                        { type: 'number', name: 'advance_payment', label: 'Advance Payment', min: 0 },
+                    ] as FormFieldConfig[]}
                     onSubmit={async (values) => {
                         setLoading(true)
-
                         const payload = {
-                            no_of_sessions: Number(values.no_of_sessions),
-                            total_payment: Number(values.total_payment),
-                            advance_payment: Number(values.advance_payment),
-                            paid_payment: Number(values.paid_payment),
-                            sessions_completed: Number(values.sessions_completed),
-                            gap_between_sessions: Number(values.gap_between_sessions),
-                            start_date: values.start_date,
-                            next_session_date: values.next_session_date || null,
-                            created_by: values.created_by,
+                            no_of_sessions: Number(values.no_of_sessions as number),
+                            total_payment: Number(values.total_payment as number),
+                            advance_payment: Number(values.advance_payment as number),
+                            paid_payment: Number(values.paid_payment as number),
+                            gap_between_sessions: Number(values.gap_between_sessions as number),
+                            start_date: values.start_date as string,
+                            created_by: values.created_by as string,
                             patient_id: patientId,
                         }
-                        await (dispatch as unknown as (action: unknown) => Promise<unknown>)(addPackage(payload))
+                        console.log('Payload:', payload)
+                        const inserted = await createPackage(payload)
+                        console.log('Inserted:', inserted)
+                        const generated = await generateSessionsClientSide({
+                            buyedPackageId: inserted.id,
+                            startDateISO: values.start_date as string,
+                            totalSessions: Number(values.no_of_sessions as number),
+                            gapDays: Number(values.gap_between_sessions as number),
+                            completedCount: 0
+                        })
+                        console.log('Generated sessions:', generated)
                         setLoading(false)
                         setFormOpen(false)
-                        await (dispatch as unknown as (action: unknown) => Promise<unknown>)(fetchPackagesByPatient(patientId))
+                        await dispatch(fetchPackagesByPatient(patientId))
                     }}
-                >
-                    <Form className="max-w-3xl">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                            <NumberField name="no_of_sessions" label="Sessions" />
-                            <NumberField name="sessions_completed" label="Completed Sessions" />
-                            <NumberField name="gap_between_sessions" label="Gap (days)" />
-                            <DateField name="start_date" label="Start Date" />
-                            <NumberField name="total_payment" label="Total Payment" />
-                            <NumberField name="paid_payment" label="Paid Payment" />
-                        </div>
-                        <NumberField name="advance_payment" label="Advance Payment" />
-                        <div className="flex flex-col sm:flex-row gap-2 mt-2">
-                            <button disabled={loading} className="rounded-lg bg-primary text-white px-3 py-2 font-semibold flex-1" type="submit">Save package</button>
-                            <button type="button" onClick={() => setFormOpen(false)} className="rounded-lg bg-gray-100 text-primaryDark px-3 py-2 flex-1 sm:flex-none">Cancel</button>
-                        </div>
-                    </Form>
-                </Formik>
+                    submitLabel="Save package"
+                    cancelLabel="Cancel"
+                    onCancel={() => setFormOpen(false)}
+                    layout="two-column"
+                    isSubmitting={loading}
+                />
             </Modal>
 
             {/* Sessions Modal */}
-            <Modal open={sessionsModalOpen} onClose={() => setSessionsModalOpen(false)} title="Session Schedule">
+            <Modal open={sessionsModalOpen} onClose={() => setSessionsModalOpen(false)} title="Sessions and Payment History">
                 {selectedPackage && (
-                    <div className="space-y-4">
-                        <div className="bg-gray-50 p-3 rounded-lg">
-                            <h4 className="font-semibold text-gray-800 mb-2">Package Details</h4>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                                <div><span className="font-medium">Total Sessions:</span> {selectedPackage.no_of_sessions}</div>
-                                <div><span className="font-medium">Completed:</span> {selectedPackage.sessions_completed}</div>
-                                <div><span className="font-medium">Gap:</span> {selectedPackage.gap_between_sessions} days</div>
-                                <div><span className="font-medium">Start Date:</span> {new Date(selectedPackage.start_date).toLocaleDateString()}</div>
-                            </div>
-                        </div>
-
-                        <div className="max-h-96 overflow-y-auto">
-                            <h4 className="font-semibold text-gray-800 mb-3">All Sessions</h4>
-                            <div className="space-y-2">
-                                {calculateSessionDates(selectedPackage).map((session, index) => (
-                                    <div
-                                        key={index}
-                                        className={`p-3 rounded-lg border ${session.isCompleted
-                                            ? 'bg-green-50 border-green-200'
-                                            : session.isUpcoming
-                                                ? 'bg-blue-50 border-blue-200'
-                                                : 'bg-gray-50 border-gray-200'
-                                            }`}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <div className="font-medium">
-                                                    Session {session.sessionNumber}
-                                                </div>
-                                                <div className="text-sm text-gray-600">
-                                                    {session.date.toLocaleDateString()} - {session.dayName}
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {session.isCompleted && (
-                                                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                                                        Completed
-                                                    </span>
-                                                )}
-                                                {session.isUpcoming && !session.isCompleted && (
-                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                                                        Upcoming
-                                                    </span>
-                                                )}
-                                                {!session.isCompleted && !session.isUpcoming && (
-                                                    <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
-                                                        Past
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                        <SessionsList packageId={selectedPackage.id} patientId={patientId} />
+                        <TransactionsList packageId={selectedPackage.id} patientId={patientId} />
                     </div>
                 )}
             </Modal>
@@ -436,24 +513,6 @@ function PackageSection({ patientId, items, user, patientName }: { patientId: nu
                     setEditingPackageId(null)
                 }}
             />
-        </div>
-    )
-}
-
-function DateField({ name, label }: { name: string; label: string }) {
-    return (
-        <div>
-            <label className="block text-xs text-[#335] mb-1">{label}</label>
-            <Field type="date" name={name} min={new Date().toISOString().slice(0, 10)} className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" />
-        </div>
-    )
-}
-
-function NumberField({ name, label }: { name: string; label: string }) {
-    return (
-        <div>
-            <label className="block text-xs text-[#335] mb-1">{label}</label>
-            <Field type="number" name={name} min={0} className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" placeholder="0" />
         </div>
     )
 }

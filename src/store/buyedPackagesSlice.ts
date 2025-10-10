@@ -1,6 +1,8 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import { supabase } from '../lib/supabaseClient'
+import { createSlice } from '@reduxjs/toolkit'
+// supabase is accessed via services; no direct use here
+import { fetchPackagesByPatient as svcFetchPackagesByPatient, updatePackageById, deletePackageById, createPackage, type CreatePackageInput } from '../services/packagesService'
 import type { BuyedPackageWithCreator, BuyedPackage } from '../types/db'
+import { createAppAsyncThunk } from './createAppAsyncThunk'
 
 type State = {
     itemsByPatientId: Record<number, BuyedPackageWithCreator[]>
@@ -14,48 +16,34 @@ const initialState: State = {
     errorByPatientId: {},
 }
 
-export const fetchPackagesByPatient = createAsyncThunk(
+export const fetchPackagesByPatient = createAppAsyncThunk<{ patientId: number; items: BuyedPackageWithCreator[] }, number>(
     'buyedPackages/fetchByPatient',
-    async (patientId: number) => {
-        const { data, error } = await supabase
-            .from('buyed_packages')
-            .select('*, creator:created_by(id,email)')
-            .eq('patient_id', patientId)
-            .order('id', { ascending: false })
-        if (error) throw new Error(error.message)
-        return { patientId, items: (data as BuyedPackageWithCreator[]) ?? [] }
+    async (patientId) => {
+        const data = await svcFetchPackagesByPatient(patientId)
+        return { patientId, items: data }
     }
 )
 
-export const addPackage = createAsyncThunk(
+export const addPackage = createAppAsyncThunk<{ patientId: number; packageId: number }, CreatePackageInput>(
     'buyedPackages/add',
-    async (payload: Omit<BuyedPackageWithCreator, 'id' | 'created_at' | 'updated_at' | 'creator'> & { patient_id: number }) => {
-        const { error } = await supabase.from('buyed_packages').insert(payload as Record<string, unknown>)
-        if (error) throw new Error(error.message)
-        return { patientId: payload.patient_id }
+    async (payload) => {
+        const { id, patient_id } = await createPackage(payload)
+        return { patientId: patient_id ?? payload.patient_id, packageId: id }
     }
 )
 
-export const deletePackage = createAsyncThunk(
+export const deletePackage = createAppAsyncThunk<{ patientId: number }, { id: number; patientId: number }>(
     'buyedPackages/delete',
-    async (payload: { id: number; patientId: number }) => {
-        const { error } = await supabase
-            .from('buyed_packages')
-            .delete()
-            .eq('id', payload.id)
-        if (error) throw new Error(error.message)
+    async (payload) => {
+        await deletePackageById(payload.id)
         return { patientId: payload.patientId }
     }
 )
 
-export const updatePackage = createAsyncThunk(
+export const updatePackage = createAppAsyncThunk<{ patientId: number }, { id: number; patient_id: number; data: Partial<BuyedPackage> }>(
     'buyedPackages/update',
-    async (payload: { id: number; patient_id: number; data: Partial<BuyedPackage> }) => {
-        const { error } = await supabase
-            .from('buyed_packages')
-            .update(payload.data as Record<string, unknown>)
-            .eq('id', payload.id)
-        if (error) throw new Error(error.message)
+    async (payload) => {
+        await updatePackageById(payload.id, payload.data)
         return { patientId: payload.patient_id }
     }
 )

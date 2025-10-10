@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Formik, Form, Field, ErrorMessage } from 'formik'
 import * as Yup from 'yup'
-import { Button } from '../components/ui/Button'
+//
 import { supabase } from '../lib/supabaseClient'
-import { useDispatch } from 'react-redux'
+import { useAppDispatch } from '../store/hooks'
 import { updatePackage, fetchPackagesByPatient } from '../store/buyedPackagesSlice'
 import type { BuyedPackage } from '../types/db'
+import { FormBuilder, type FormFieldConfig } from './ui/Form'
 
 interface PackageEditModalProps {
     packageId: number | null
@@ -15,7 +15,7 @@ interface PackageEditModalProps {
 }
 
 export function PackageEditModal({ packageId, patientId, isOpen, onClose }: PackageEditModalProps) {
-    const dispatch = useDispatch()
+    const dispatch = useAppDispatch()
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [packageData, setPackageData] = useState<BuyedPackage | null>(null)
@@ -63,10 +63,7 @@ export function PackageEditModal({ packageId, patientId, isOpen, onClose }: Pack
         total_payment: Yup.number().min(0).required('Total payment is required'),
         advance_payment: Yup.number().min(0).required('Advance payment is required').max(Yup.ref('total_payment'), 'Advance payment cannot exceed total payment'),
         paid_payment: Yup.number().min(0).required('Paid payment is required').max(Yup.ref('total_payment'), 'Paid payment cannot exceed total payment'),
-        sessions_completed: Yup.number().min(0).required('Sessions completed is required'),
         gap_between_sessions: Yup.number().min(0).required('Gap between sessions is required'),
-        start_date: Yup.string().required('Start date is required'),
-        next_session_date: Yup.string().nullable(),
     })
 
     if (!isOpen) return null
@@ -102,45 +99,33 @@ export function PackageEditModal({ packageId, patientId, isOpen, onClose }: Pack
                                 </div>
                             )}
 
-                            <Formik
+                            <FormBuilder
                                 initialValues={{
                                     no_of_sessions: packageData.no_of_sessions,
                                     total_payment: packageData.total_payment,
                                     advance_payment: packageData.advance_payment,
-                                    paid_payment: packageData.paid_payment,
-                                    sessions_completed: packageData.sessions_completed,
                                     gap_between_sessions: packageData.gap_between_sessions,
-                                    start_date: packageData.start_date,
-                                    next_session_date: packageData.next_session_date || '',
                                 }}
                                 validationSchema={schema}
+                                fields={[
+                                    { type: 'number', name: 'no_of_sessions', label: 'Number of Sessions *', min: 0 },
+                                    { type: 'number', name: 'gap_between_sessions', label: 'Gap Between Sessions (days) *', min: 0 },
+                                    { type: 'number', name: 'total_payment', label: 'Total Payment *', min: 0 },
+                                    { type: 'number', name: 'advance_payment', label: 'Advance Payment *', min: 0 },
+                                ] as FormFieldConfig[]}
                                 onSubmit={async (values) => {
                                     if (!packageId) return
-
                                     setLoading(true)
                                     setError(null)
-
                                     try {
                                         const updateData = {
-                                            no_of_sessions: Number(values.no_of_sessions),
-                                            total_payment: Number(values.total_payment),
-                                            advance_payment: Number(values.advance_payment),
-                                            paid_payment: Number(values.paid_payment),
-                                            sessions_completed: Number(values.sessions_completed),
-                                            gap_between_sessions: Number(values.gap_between_sessions),
-                                            start_date: values.start_date,
-                                            next_session_date: values.next_session_date || null,
+                                            no_of_sessions: Number(values.no_of_sessions as number),
+                                            total_payment: Number(values.total_payment as number),
+                                            advance_payment: Number(values.advance_payment as number),
+                                            gap_between_sessions: Number(values.gap_between_sessions as number),
                                         }
-
-                                        await (dispatch as unknown as (action: unknown) => Promise<unknown>)(updatePackage({
-                                            id: packageId,
-                                            patient_id: patientId,
-                                            data: updateData
-                                        }))
-
-                                        // Refresh the packages list
-                                        await (dispatch as unknown as (action: unknown) => Promise<unknown>)(fetchPackagesByPatient(patientId))
-
+                                        await dispatch(updatePackage({ id: packageId, patient_id: patientId, data: updateData }))
+                                        await dispatch(fetchPackagesByPatient(patientId))
                                         onClose()
                                     } catch (err) {
                                         setError(err instanceof Error ? err.message : 'Failed to update package')
@@ -148,151 +133,12 @@ export function PackageEditModal({ packageId, patientId, isOpen, onClose }: Pack
                                         setLoading(false)
                                     }
                                 }}
-                            >
-                                <Form className="space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Number of Sessions */}
-                                        <div>
-                                            <label htmlFor="no_of_sessions" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Number of Sessions *
-                                            </label>
-                                            <Field
-                                                type="number"
-                                                id="no_of_sessions"
-                                                name="no_of_sessions"
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                                min="0"
-                                            />
-                                            <ErrorMessage name="no_of_sessions" component="div" className="text-red-500 text-sm mt-1" />
-                                        </div>
-
-                                        {/* Total Payment */}
-                                        <div>
-                                            <label htmlFor="total_payment" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Total Payment *
-                                            </label>
-                                            <Field
-                                                type="number"
-                                                id="total_payment"
-                                                name="total_payment"
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                                min="0"
-                                                step="0.01"
-                                            />
-                                            <ErrorMessage name="total_payment" component="div" className="text-red-500 text-sm mt-1" />
-                                        </div>
-
-                                        {/* Advance Payment */}
-                                        <div>
-                                            <label htmlFor="advance_payment" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Advance Payment *
-                                            </label>
-                                            <Field
-                                                type="number"
-                                                id="advance_payment"
-                                                name="advance_payment"
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                                min="0"
-                                                step="0.01"
-                                            />
-                                            <ErrorMessage name="advance_payment" component="div" className="text-red-500 text-sm mt-1" />
-                                        </div>
-
-                                        {/* Paid Payment */}
-                                        <div>
-                                            <label htmlFor="paid_payment" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Paid Payment *
-                                            </label>
-                                            <Field
-                                                type="number"
-                                                id="paid_payment"
-                                                name="paid_payment"
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                                min="0"
-                                                step="0.01"
-                                            />
-                                            <ErrorMessage name="paid_payment" component="div" className="text-red-500 text-sm mt-1" />
-                                        </div>
-
-                                        {/* Sessions Completed */}
-                                        <div>
-                                            <label htmlFor="sessions_completed" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Sessions Completed *
-                                            </label>
-                                            <Field
-                                                type="number"
-                                                id="sessions_completed"
-                                                name="sessions_completed"
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                                min="0"
-                                            />
-                                            <ErrorMessage name="sessions_completed" component="div" className="text-red-500 text-sm mt-1" />
-                                        </div>
-
-                                        {/* Gap Between Sessions */}
-                                        <div>
-                                            <label htmlFor="gap_between_sessions" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Gap Between Sessions (days) *
-                                            </label>
-                                            <Field
-                                                type="number"
-                                                id="gap_between_sessions"
-                                                name="gap_between_sessions"
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                                min="0"
-                                            />
-                                            <ErrorMessage name="gap_between_sessions" component="div" className="text-red-500 text-sm mt-1" />
-                                        </div>
-
-                                        {/* Start Date */}
-                                        <div>
-                                            <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Start Date *
-                                            </label>
-                                            <Field
-                                                type="date"
-                                                id="start_date"
-                                                name="start_date"
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                            />
-                                            <ErrorMessage name="start_date" component="div" className="text-red-500 text-sm mt-1" />
-                                        </div>
-
-                                        {/* Next Session Date */}
-                                        <div>
-                                            <label htmlFor="next_session_date" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Next Session Date
-                                            </label>
-                                            <Field
-                                                type="date"
-                                                id="next_session_date"
-                                                name="next_session_date"
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                            />
-                                            <ErrorMessage name="next_session_date" component="div" className="text-red-500 text-sm mt-1" />
-                                        </div>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
-                                        <Button
-                                            type="submit"
-                                            disabled={loading}
-                                            className="flex-1"
-                                        >
-                                            {loading ? 'Updating...' : 'Update Package'}
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            variant="secondary"
-                                            onClick={onClose}
-                                            className="flex-1"
-                                        >
-                                            Cancel
-                                        </Button>
-                                    </div>
-                                </Form>
-                            </Formik>
+                                submitLabel={loading ? 'Updating...' : 'Update Package'}
+                                cancelLabel="Cancel"
+                                onCancel={onClose}
+                                layout="two-column"
+                                isSubmitting={loading}
+                            />
                         </>
                     )}
                 </div>

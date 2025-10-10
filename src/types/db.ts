@@ -32,4 +32,16 @@ export type BuyedPackageWithCreator = BuyedPackage & {
     creator: { id: string; email: string | null } | null
 }
 
+export type Session = {
+    id: number
+    buyed_package_id: number
+    session_number: number
+    scheduled_date: string // YYYY-MM-DD
+    actual_date: string | null // if rescheduled/completed
+    status: 'planned' | 'completed' | 'missed' | 'rescheduled'
+    updated_by: string | null // auth user who last updated/rescheduled
+    created_at: string | null
+    updated_at: string | null
+}
+
 

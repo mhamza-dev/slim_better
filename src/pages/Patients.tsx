@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { supabase } from '../lib/supabaseClient'
+//
+import { createPatient } from '../services/patientsService'
 import Modal from '../components/Modal'
 import { PatientEditModal } from '../components/PatientEditModal'
 import { Button } from '../components/ui/Button'
 import { Plus, Search, Download, Eye, Edit } from 'lucide-react'
 import { Card, CardContent } from '../components/ui/Card'
 import type { Patient } from '../types/db'
-import { useDispatch, useSelector } from 'react-redux'
-import type { RootState } from '../store'
+import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { fetchPatients } from '../store/patientsSlice'
 import { exportPatientsToExcelWithLogo } from '../lib/excelExport'
 
@@ -24,12 +24,11 @@ function calculateAge(dobIso: string | null): number | null {
 }
 
 export default function Patients() {
-    const dispatch = useDispatch()
-    const patients = useSelector((s: RootState) => (s as RootState & { patients: { items: Patient[] } }).patients.items)
-    const loading = useSelector((s: RootState) => (s as RootState & { patients: { loading: boolean } }).patients.loading)
+    const dispatch = useAppDispatch()
+    const patients = useAppSelector((s) => s.patients.items)
+    const loading = useAppSelector((s) => s.patients.loading)
 
     useEffect(() => {
-        // @ts-expect-error - Redux dispatch type issue
         dispatch(fetchPatients())
     }, [dispatch])
 
@@ -133,13 +132,13 @@ export default function Patients() {
                                             <td className="p-3 text-sm">{p.created_at ? new Date(p.created_at).toLocaleDateString() : '-'}</td>
                                             <td className="p-3 text-right">
                                                 <div className="flex items-center justify-end gap-1">
-                                                    <button
-                                                        onClick={() => window.location.href = `/patients/${p.id}`}
+                                                    <Link
+                                                        to={`/patients/${p.id}`}
                                                         className="p-1 hover:bg-blue-100 rounded transition-colors"
                                                         title="View patient"
                                                     >
                                                         <Eye size={20} className="text-blue-600" />
-                                                    </button>
+                                                    </Link>
                                                     <button
                                                         onClick={() => handleEditPatient(p.id)}
                                                         className="p-1 hover:bg-green-100 rounded transition-colors"
@@ -172,7 +171,6 @@ export default function Patients() {
                 }}
                 onSuccess={() => {
                     // Refresh the patients list
-                    // @ts-expect-error - Redux dispatch type issue
                     dispatch(fetchPatients())
                 }}
             />
@@ -180,69 +178,65 @@ export default function Patients() {
     )
 }
 
-import { Formik, Form, Field, ErrorMessage } from 'formik'
 import * as Yup from 'yup'
+import { useAuth } from '../hooks/useAuth'
+import { FormBuilder, type FormFieldConfig } from '../components/ui/Form'
+import { Link } from 'react-router-dom'
 
 function PatientsModalForm({ onDone }: { onDone: () => void }) {
     const [submitting, setSubmitting] = useState(false)
+    const { user } = useAuth()
+    const initialValues = { name: '', phone_number: '', address: '', date_of_birth: '', branch_name: '' }
+    const validationSchema = Yup.object({
+        name: Yup.string().required('Required'),
+        phone_number: Yup.string().required('Required'),
+        address: Yup.string().nullable(),
+        date_of_birth: Yup.string().nullable(),
+        branch_name: Yup.string().required('Required'),
+    })
+    const fields: FormFieldConfig[] = [
+        { type: 'text', name: 'name', label: 'Name' },
+        { type: 'text', name: 'phone_number', label: 'Phone' },
+        { type: 'textarea', name: 'address', label: 'Address', rows: 3 },
+        { type: 'date', name: 'date_of_birth', label: 'Date of birth' },
+        {
+            type: 'select', name: 'branch_name', label: 'Branch *', options: [
+                { label: 'Select a branch', value: '' },
+                { label: 'Canal Road Branch, Fsd', value: 'Canal Road Branch, Fsd' },
+                { label: 'Kohinoor Branch, Fsd', value: 'Kohinoor Branch, Fsd' },
+            ]
+        },
+    ]
     return (
-        <Formik
-            initialValues={{ name: '', phone_number: '', address: '', date_of_birth: '', branch_name: '' }}
-            validationSchema={Yup.object({
-                name: Yup.string().required('Required'),
-                phone_number: Yup.string().required('Required'),
-                address: Yup.string().nullable(),
-                date_of_birth: Yup.string().nullable(),
-                branch_name: Yup.string().required('Required'),
-            })}
+        <FormBuilder
+            initialValues={initialValues}
+            validationSchema={validationSchema}
+            fields={fields}
             onSubmit={async (values) => {
                 setSubmitting(true)
-                const { error } = await supabase.from('patients').insert({
-                    name: values.name,
-                    phone_number: values.phone_number,
-                    address: values.address || null,
-                    date_of_birth: values.date_of_birth || null,
-                    branch_name: values.branch_name,
-                })
+                try {
+                    await createPatient({
+                        name: values.name as string,
+                        phone_number: values.phone_number as string,
+                        address: (values.address as string) || null,
+                        date_of_birth: (values.date_of_birth as string) || null,
+                        branch_name: values.branch_name as string,
+                        created_by: user?.id || null
+                    })
+                } catch (e) {
+                    setSubmitting(false)
+                    alert(e instanceof Error ? e.message : 'Failed to create patient')
+                    return
+                }
                 setSubmitting(false)
-                if (error) { alert(error.message); return }
                 onDone()
             }}
-        >
-            <Form className="space-y-3">
-                <div>
-                    <label className="block text-xs text-[#335] mb-1">Name</label>
-                    <Field name="name" className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" />
-                    <ErrorMessage name="name" component="div" className="text-red-700 text-sm" />
-                </div>
-                <div>
-                    <label className="block text-xs text-[#335] mb-1">Phone</label>
-                    <Field name="phone_number" className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" />
-                    <ErrorMessage name="phone_number" component="div" className="text-red-700 text-sm" />
-                </div>
-                <div>
-                    <label className="block text-xs text-[#335] mb-1">Address</label>
-                    <Field as="textarea" name="address" className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" />
-                </div>
-                <div>
-                    <label className="block text-xs text-[#335] mb-1">Date of birth</label>
-                    <Field type="date" name="date_of_birth" className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" />
-                </div>
-                <div>
-                    <label className="block text-xs text-[#335] mb-1">Branch *</label>
-                    <Field as="select" name="branch_name" className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" required>
-                        <option value="">Select a branch</option>
-                        <option value="Canal Road Branch, Fsd">Canal Road Branch, Fsd</option>
-                        <option value="Kohinoor Branch, Fsd">Kohinoor Branch, Fsd</option>
-                    </Field>
-                    <ErrorMessage name="branch_name" component="div" className="text-red-700 text-sm" />
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2">
-                    <button type="submit" disabled={submitting} className="rounded-lg bg-primary text-white px-3 py-2 font-semibold flex-1">Save</button>
-                    <button type="button" onClick={onDone} className="rounded-lg bg-gray-100 text-primaryDark px-3 py-2 flex-1 sm:flex-none">Cancel</button>
-                </div>
-            </Form>
-        </Formik>
+            submitLabel="Save"
+            cancelLabel="Cancel"
+            onCancel={onDone}
+            layout="one-column"
+            isSubmitting={submitting}
+        />
     )
 }
 

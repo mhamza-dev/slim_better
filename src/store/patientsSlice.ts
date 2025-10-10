@@ -1,6 +1,7 @@
-import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit'
-import { supabase } from '../lib/supabaseClient'
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { Patient } from '../types/db'
+import { createAppAsyncThunk } from './createAppAsyncThunk'
+import { fetchPatientsList } from '../services/patientsService'
 
 type PatientsState = {
     items: Patient[]
@@ -14,15 +15,13 @@ const initialState: PatientsState = {
     error: null,
 }
 
-export const fetchPatients = createAsyncThunk('patients/fetch', async () => {
-    const { data, error } = await supabase
-        .from('patients')
-        .select('id, name, phone_number, address, date_of_birth, branch_name, created_at, updated_at')
-        .order('id', { ascending: false })
-        .limit(200)
-    if (error) throw new Error(error.message)
-    return (data as Patient[]) ?? []
-})
+export const fetchPatients = createAppAsyncThunk<Patient[], void>(
+    'patients/fetch',
+    async () => {
+        const data = await fetchPatientsList(200)
+        return data
+    }
+)
 
 const patientsSlice = createSlice({
     name: 'patients',

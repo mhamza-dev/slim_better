@@ -224,9 +224,9 @@ export function exportDashboardToExcel(dashboardData: {
   totalPaid: number
   totalAdvance: number
   upcomingSessions: Array<{
-    patients?: { name?: string } | null
-    next_session_date?: string | null
-    daysUntil?: number
+    patient_name?: string | null
+    scheduled_date?: string | null
+    status?: string
   }>
 }) {
   const summaryData = [{
@@ -247,9 +247,9 @@ export function exportDashboardToExcel(dashboardData: {
   }]
 
   const upcomingSessionsData = dashboardData.upcomingSessions.map(session => ({
-    'Patient Name': session.patients?.name || '',
-    'Next Session Date': session.next_session_date ? new Date(session.next_session_date).toLocaleDateString() : '',
-    'Days Until': session.daysUntil || ''
+    'Patient Name': session.patient_name || '',
+    'Session Date': session.scheduled_date ? new Date(session.scheduled_date).toLocaleDateString() : '',
+    'Status': session.status || ''
   }))
 
   try {
@@ -355,9 +355,9 @@ export async function exportDashboardToExcelWithLogo(dashboardData: {
   totalPaid: number
   totalAdvance: number
   upcomingSessions: Array<{
-    patients?: { name?: string } | null
-    next_session_date?: string | null
-    daysUntil?: number
+    patient_name?: string | null
+    scheduled_date?: string | null
+    status?: string
   }>
 }) {
   try {
@@ -416,9 +416,9 @@ export async function exportDashboardToExcelWithLogo(dashboardData: {
 
           const sessionsDataStartRow = 4
           const upcomingSessionsData = upcomingSessions.map(session => ({
-            'Patient Name': session.patients?.name || 'N/A',
-            'Next Session Date': session.next_session_date ? new Date(session.next_session_date).toLocaleDateString() : 'N/A',
-            'Days Until': session.daysUntil,
+            'Patient Name': session.patient_name || 'N/A',
+            'Session Date': session.scheduled_date ? new Date(session.scheduled_date).toLocaleDateString() : 'N/A',
+            'Status': session.status || 'planned',
           }))
 
           // Add headers

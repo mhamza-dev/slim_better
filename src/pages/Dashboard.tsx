@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { supabase } from '../lib/supabaseClient'
+//
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar, Legend } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
-import { Download, Search } from 'lucide-react'
-import { useDispatch, useSelector } from 'react-redux'
-import type { RootState } from '../store'
+import { Download } from 'lucide-react'
+import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { fetchPatients } from '../store/patientsSlice'
 import { exportDashboardToExcelWithLogo } from '../lib/excelExport'
+import { fetchDashboardPackages } from '../services/packagesService'
+import { fetchPlannedSessionsByDateRange, type DashboardSessionRow } from '../services/sessionsService'
+//
+import { DateRangeInput } from '../components/ui/DateRange'
 
 type PackageRow = {
     id: number
@@ -26,22 +29,18 @@ type PackageRow = {
 export default function Dashboard() {
     const [loading, setLoading] = useState(true)
     const [packages, setPackages] = useState<PackageRow[]>([])
-    const [searchTerm, setSearchTerm] = useState('')
-    const dispatch = useDispatch()
-    const patients = useSelector((s: RootState) => (s as RootState & { patients: { items: unknown[] } }).patients.items)
+    const [filterDate, setFilterDate] = useState<string>(() => new Date().toISOString().split('T')[0])
+    const [filterEndDate, setFilterEndDate] = useState<string>('')
+    const [rangeSessions, setRangeSessions] = useState<DashboardSessionRow[]>([])
+    const dispatch = useAppDispatch()
+    const patients = useAppSelector((s) => s.patients.items)
 
     useEffect(() => {
         let mounted = true
             ; (async () => {
-                const [pkgRes] = await Promise.all([
-                    supabase
-                        .from('buyed_packages')
-                        .select('id,total_payment,paid_payment,advance_payment,no_of_sessions,sessions_completed,gap_between_sessions,start_date,next_session_date,patients(name)')
-                        .order('start_date', { ascending: false })
-                        .limit(1000)
-                ])
+                const data = await fetchDashboardPackages(1000)
                 if (!mounted) return
-                setPackages((pkgRes.data as unknown as PackageRow[]) ?? [])
+                setPackages((data as unknown as PackageRow[]) ?? [])
                 setLoading(false)
             })()
         return () => { mounted = false }
@@ -50,7 +49,6 @@ export default function Dashboard() {
     useEffect(() => {
         if (!patients || patients.length === 0) {
             // ensure we load at least once for the count
-            // @ts-expect-error - Redux dispatch type issue
             dispatch(fetchPatients())
         }
     }, [dispatch, patients])
@@ -89,66 +87,24 @@ export default function Dashboard() {
     const formatCurrency = (amount: number) =>
         `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 0 })}`
 
-    const daysUntil = (dateStr: string) => {
-        const today = new Date()
-        const date = new Date(dateStr)
-        const diff = Math.ceil((date.getTime() - new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()) / (1000 * 60 * 60 * 24))
-        return diff
-    }
 
-    // Filter upcoming sessions based on search term
-    const filteredUpcomingSessions = useMemo(() => {
-        const upcoming = packages
-            .filter((p) => p.next_session_date)
-            .sort((a, b) => new Date(a.next_session_date as string).getTime() - new Date(b.next_session_date as string).getTime())
-            .slice(0, 5)
-            .map((p) => ({
-                ...p,
-                daysUntil: daysUntil(p.next_session_date as string)
-            }))
-
-        if (!searchTerm.trim()) return upcoming
-
-        const term = searchTerm.toLowerCase()
-        return upcoming.filter(session =>
-            session.patients?.name?.toLowerCase().includes(term)
-        )
-    }, [packages, searchTerm])
+    // Fetch sessions for the selected day/range
+    useEffect(() => {
+        let mounted = true
+            ; (async () => {
+                const start = filterDate
+                const end = filterEndDate || undefined
+                const rows = await fetchPlannedSessionsByDateRange(start, end)
+                if (!mounted) return
+                setRangeSessions(rows)
+            })()
+        return () => { mounted = false }
+    }, [filterDate, filterEndDate])
 
     return (
         <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center mb-3 gap-3">
                 <h2 className="text-primaryDark text-lg sm:text-xl">Dashboard</h2>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                    <div className="relative">
-                        <input
-                            placeholder="Search upcoming sessions"
-                            className="pl-9 pr-3 py-2 rounded-lg border border-[#e6eef8] bg-white w-full sm:w-auto"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                        <Search size={16} className="absolute left-2 top-2.5 text-gray-500" />
-                    </div>
-                    <Button
-                        variant="secondary"
-                        className="gap-2 whitespace-nowrap"
-                        onClick={() => {
-                            exportDashboardToExcelWithLogo({
-                                totalPatients,
-                                totalPackages,
-                                totalRevenue,
-                                totalPaid,
-                                totalAdvance,
-                                upcomingSessions: filteredUpcomingSessions
-                            })
-                        }}
-                        disabled={loading}
-                    >
-                        <Download size={16} />
-                        <span className="hidden xs:inline">Export Excel</span>
-                        <span className="xs:hidden">Export</span>
-                    </Button>
-                </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
                 <StatCard title="Patients" loading={loading} value={totalPatients.toString()} />
@@ -214,9 +170,36 @@ export default function Dashboard() {
                 <Card>
                     <CardHeader className="flex items-center justify-between">
                         <CardTitle>Upcoming sessions</CardTitle>
-                        {!loading && (
-                            <Badge variant="gray">Top 5</Badge>
-                        )}
+
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                            <DateRangeInput
+                                value={{ start: filterDate, end: filterEndDate || undefined }}
+                                onChange={(r) => { setFilterDate(r.start); setFilterEndDate(r.end || '') }}
+                            />
+                            <Button
+                                variant="secondary"
+                                className="gap-2 whitespace-nowrap"
+                                onClick={() => {
+                                    exportDashboardToExcelWithLogo({
+                                        totalPatients,
+                                        totalPackages,
+                                        totalRevenue,
+                                        totalPaid,
+                                        totalAdvance,
+                                        upcomingSessions: rangeSessions.map((s) => ({
+                                            patient_name: s.patient_name,
+                                            scheduled_date: s.scheduled_date,
+                                            status: s.status,
+                                        }))
+                                    })
+                                }}
+                                disabled={loading}
+                            >
+                                <Download size={16} />
+                                <span className="hidden xs:inline">Export Excel</span>
+                                <span className="xs:hidden">Export</span>
+                            </Button>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="grid gap-2">
@@ -224,19 +207,19 @@ export default function Dashboard() {
                                 Array.from({ length: 5 }).map((_, i) => (
                                     <div key={i} className="h-16 rounded-lg bg-gray-100 animate-pulse" />
                                 ))
-                            ) : filteredUpcomingSessions.length === 0 ? (
+                            ) : rangeSessions.length === 0 ? (
                                 <div className="text-center py-4 text-gray-500">
-                                    {searchTerm ? `No sessions found matching "${searchTerm}"` : 'No upcoming sessions'}
+                                    {`No upcoming sessions for ${new Date(filterDate).toLocaleDateString()}`}
                                 </div>
                             ) : (
-                                filteredUpcomingSessions.map((p) => {
-                                    const badgeVariant = p.daysUntil < 0 ? 'red' : p.daysUntil <= 2 ? 'green' : 'blue'
-                                    const badgeText = p.daysUntil < 0 ? 'Overdue' : p.daysUntil === 0 ? 'Today' : p.daysUntil === 1 ? 'Tomorrow' : `${p.daysUntil} days`
+                                rangeSessions.map((s) => {
+                                    const badgeVariant = 'blue'
+                                    const badgeText = new Date(s.scheduled_date).toLocaleDateString()
                                     return (
-                                        <div key={p.id} className="flex items-center justify-between bg-white border border-[#e6eef8] rounded-xl p-3">
+                                        <div key={s.id} className="flex items-center justify-between bg-white border border-[#e6eef8] rounded-xl p-3">
                                             <div className="flex-1 min-w-0">
-                                                <div className="font-bold truncate">{p.patients?.name ?? 'Patient'}</div>
-                                                <div className="text-sm text-[#335] truncate">Next: {new Date(p.next_session_date as string).toLocaleDateString()}</div>
+                                                <div className="font-bold truncate">{s.patient_name ?? 'Patient'}</div>
+                                                <div className="text-sm text-[#335] truncate">{s.status}</div>
                                             </div>
                                             <div className="ml-2 flex-shrink-0">
                                                 <Badge variant={badgeVariant as 'blue' | 'green' | 'gray' | 'red'}>{badgeText}</Badge>
