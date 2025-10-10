@@ -64,7 +64,7 @@ export async function addPaymentAndUpdatePackage(input: { buyed_package_id: numb
     // Ensure package is not deleted
     const { data: pkgRow, error: pkgCheckErr } = await supabase
         .from('buyed_packages')
-        .select('id,paid_payment,total_payment')
+        .select('id,paid_payment,total_payment,advance_payment')
         .eq('id', input.buyed_package_id)
         .eq('is_deleted', false)
         .single()
@@ -77,7 +77,13 @@ export async function addPaymentAndUpdatePackage(input: { buyed_package_id: numb
     // 2) read current paid and total
     const current = Number((pkgRow as any)?.paid_payment ?? 0)
     const total = Number((pkgRow as any)?.total_payment ?? 0)
-    const next = Math.min(current + Number(input.amount), total)
+    const advance = Number((pkgRow as any)?.advance_payment ?? 0)
+    const maxAllowedPaid = Math.max(0, total - advance)
+    const requested = Number(input.amount)
+    if (current + requested > maxAllowedPaid) {
+        throw new Error(`Payment exceeds remaining amount. Remaining: ${Math.max(0, maxAllowedPaid - current)}`)
+    }
+    const next = current + requested
 
     // 3) update package
     const { error: updErr } = await supabase
@@ -139,13 +145,19 @@ export async function updatePaymentAndUpdatePackage(id: number, changes: { amoun
     if (delta !== 0) {
         const { data: pkg, error: pkgErr } = await supabase
             .from('buyed_packages')
-            .select('paid_payment,total_payment')
+            .select('paid_payment,total_payment,advance_payment')
             .eq('id', tx.buyed_package_id)
             .single()
         if (pkgErr) throw pkgErr
         const current = Number((pkg as any)?.paid_payment ?? 0)
         const total = Number((pkg as any)?.total_payment ?? 0)
-        const next = Math.max(0, Math.min(current + delta, total))
+        const advance = Number((pkg as any)?.advance_payment ?? 0)
+        const maxAllowedPaid = Math.max(0, total - advance)
+        const tentative = current + delta
+        if (tentative > maxAllowedPaid) {
+            throw new Error(`Payment exceeds remaining amount. Remaining: ${Math.max(0, maxAllowedPaid - current)}`)
+        }
+        const next = Math.max(0, tentative)
         const { error: updPkgErr } = await supabase
             .from('buyed_packages')
             .update({ paid_payment: next })
