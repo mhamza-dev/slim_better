@@ -28,7 +28,7 @@ export async function updatePatient(id: number, input: Partial<Patient>): Promis
 export async function fetchPatientsList(limit = 200): Promise<Patient[]> {
     const { data, error } = await supabase
         .from('patients')
-        .select('id, name, phone_number, address, date_of_birth, branch_name, created_at, updated_at, created_by')
+        .select('id, name, phone_number, address, age, branch_name, created_at, updated_at, created_by')
         .eq('is_deleted', false)
         .order('id', { ascending: false })
         .limit(limit)

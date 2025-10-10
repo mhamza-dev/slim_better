@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 //
-import { createPatient } from '../services/patientsService'
+import { createPatient, softDeletePatient } from '../services/patientsService'
 import Modal from '../components/Modal'
 import { PatientEditModal } from '../components/PatientEditModal'
 import { Button } from '../components/ui/Button'
-import { Plus, Search, Download, Edit } from 'lucide-react'
+import { Plus, Search, Download, Edit, Trash2 } from 'lucide-react'
 import { Card, CardContent } from '../components/ui/Card'
 import type { Patient } from '../types/db'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
@@ -16,17 +16,7 @@ import { useAuth } from '../hooks/useAuth'
 import { FormBuilder, type FormFieldConfig } from '../components/ui/Form'
 import { useNavigate } from 'react-router-dom'
 
-function calculateAge(dobIso: string | null): number | null {
-    if (!dobIso) return null
-    const dob = new Date(dobIso)
-    const now = new Date()
-    let age = now.getFullYear() - dob.getFullYear()
-    const m = now.getMonth() - dob.getMonth()
-    if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) {
-        age--
-    }
-    return age
-}
+// Removed calculateAge function since age is now stored directly
 
 export default function Patients() {
     const dispatch = useAppDispatch()
@@ -38,10 +28,7 @@ export default function Patients() {
         dispatch(fetchPatients())
     }, [dispatch])
 
-    const computed = useMemo(() => (patients as Patient[]).map((p: Patient) => ({
-        ...p,
-        age: calculateAge(p.date_of_birth),
-    })), [patients])
+    const computed = useMemo(() => (patients as Patient[]), [patients])
 
     const [searchTerm, setSearchTerm] = useState('')
     const [open, setOpen] = useState(false)
@@ -65,6 +52,21 @@ export default function Patients() {
     const handleEditPatient = (patientId: number) => {
         setEditingPatientId(patientId)
         setEditModalOpen(true)
+    }
+
+    const handleDeletePatient = async (patientId: number, patientName: string) => {
+        if (!confirm(`Are you sure you want to delete "${patientName}"? This will also delete all their packages and cannot be undone.`)) {
+            return
+        }
+
+        try {
+            await softDeletePatient(patientId)
+            // Refresh the patients list
+            dispatch(fetchPatients())
+        } catch (error) {
+            console.error('Failed to delete patient:', error)
+            alert(`Failed to delete patient: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        }
     }
 
     return (
@@ -129,7 +131,7 @@ export default function Patients() {
                                         {searchTerm ? `No patients found matching "${searchTerm}"` : 'No patients yet'}
                                     </td></tr>
                                 ) : (
-                                    filteredPatients.map((p: Patient & { age: number | null }) => (
+                                    filteredPatients.map((p: Patient) => (
                                         <tr key={p.id} className="border-t border-[#e6eef8] hover:bg-blue-50/30 even:bg-blue-50/20 cursor-pointer" onClick={() => navigate(`/patients/${p.id}`)}>
                                             <td className="p-3 truncate max-w-[120px]" title={p.name}>{p.name}</td>
                                             <td className="p-3 text-sm">{p.phone_number}</td>
@@ -139,13 +141,22 @@ export default function Patients() {
                                             <td className="p-3 text-sm">{p.created_at ? new Date(p.created_at).toLocaleDateString() : '-'}</td>
                                             <td className="p-3 text-sm truncate max-w-[100px]" title={p.creator_email ?? ''}>{p.creator_email ?? '-'}</td>
                                             <td className="p-3 text-right">
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleEditPatient(p.id) }}
-                                                    className="p-1 hover:bg-green-100 rounded transition-colors"
-                                                    title="Edit patient"
-                                                >
-                                                    <Edit size={20} className="text-green-600" />
-                                                </button>
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleEditPatient(p.id) }}
+                                                        className="p-1 hover:bg-green-100 rounded transition-colors"
+                                                        title="Edit patient"
+                                                    >
+                                                        <Edit size={20} className="text-green-600" />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleDeletePatient(p.id, p.name) }}
+                                                        className="p-1 hover:bg-red-100 rounded transition-colors"
+                                                        title="Delete patient"
+                                                    >
+                                                        <Trash2 size={20} className="text-red-600" />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -180,19 +191,19 @@ export default function Patients() {
 function PatientsModalForm({ onDone }: { onDone: () => void }) {
     const [submitting, setSubmitting] = useState(false)
     const { user } = useAuth()
-    const initialValues = { name: '', phone_number: '', address: '', date_of_birth: '', branch_name: '' }
+    const initialValues = { name: '', phone_number: '', address: '', age: '', branch_name: '' }
     const validationSchema = Yup.object({
         name: Yup.string().required('Required'),
         phone_number: Yup.string().required('Required'),
         address: Yup.string().nullable(),
-        date_of_birth: Yup.string().nullable(),
+        age: Yup.number().min(0).max(150).nullable(),
         branch_name: Yup.string().required('Required'),
     })
     const fields: FormFieldConfig[] = [
         { type: 'text', name: 'name', label: 'Name' },
         { type: 'text', name: 'phone_number', label: 'Phone' },
         { type: 'textarea', name: 'address', label: 'Address', rows: 3 },
-        { type: 'date', name: 'date_of_birth', label: 'Date of birth' },
+        { type: 'number', name: 'age', label: 'Age', min: 0, max: 150 },
         {
             type: 'select', name: 'branch_name', label: 'Branch *', options: [
                 { label: 'Canal Road Branch, Fsd', value: 'Canal Road Branch, Fsd' },
@@ -212,7 +223,7 @@ function PatientsModalForm({ onDone }: { onDone: () => void }) {
                         name: values.name as string,
                         phone_number: values.phone_number as string,
                         address: (values.address as string) || null,
-                        date_of_birth: (values.date_of_birth as string) || null,
+                        age: values.age ? Number(values.age) : null,
                         branch_name: values.branch_name as string,
                         created_by: user?.id || null
                     })

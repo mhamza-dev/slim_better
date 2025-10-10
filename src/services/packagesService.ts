@@ -24,14 +24,14 @@ export async function createPackage(input: CreatePackageInput): Promise<{ id: nu
 
 export type DashboardPackageRow = Pick<BuyedPackageWithCreator,
     'id' | 'total_payment' | 'paid_payment' | 'advance_payment' | 'no_of_sessions' | 'gap_between_sessions' | 'start_date'> &
-{ patients?: { name: string } | null; sessions_completed: number; next_session_date: string | null }
+{ patients?: { name: string; phone_number: string } | null; sessions_completed: number; next_session_date: string | null }
 
 export async function fetchDashboardPackages(limit = 1000): Promise<DashboardPackageRow[]> {
     const today = new Date().toISOString().slice(0, 10)
     // Step 1: base packages
     const { data: pkgs, error: pkgErr } = await supabase
         .from('buyed_packages')
-        .select('id,total_payment,paid_payment,advance_payment,no_of_sessions,gap_between_sessions,start_date,patients(name)')
+        .select('id,total_payment,paid_payment,advance_payment,no_of_sessions,gap_between_sessions,start_date,patients(name,phone_number)')
         .eq('is_deleted', false)
         .order('start_date', { ascending: false })
         .limit(limit)
@@ -188,7 +188,7 @@ export async function fetchPackageBySessionId(sessionId: number): Promise<Dashbo
     // Now fetch the package details
     const { data: pkgData, error: pkgError } = await supabase
         .from('buyed_packages')
-        .select('id,total_payment,paid_payment,advance_payment,no_of_sessions,gap_between_sessions,start_date,patients(name)')
+        .select('id,total_payment,paid_payment,advance_payment,no_of_sessions,gap_between_sessions,start_date,patients(name,phone_number)')
         .eq('id', packageId)
         .single()
 
@@ -228,7 +228,7 @@ export async function fetchPackageBySessionId(sessionId: number): Promise<Dashbo
         no_of_sessions: pkgData.no_of_sessions,
         gap_between_sessions: pkgData.gap_between_sessions,
         start_date: pkgData.start_date,
-        patients: pkgData.patients as unknown as { name: string } | null,
+        patients: pkgData.patients as unknown as { name: string; phone_number: string } | null,
         sessions_completed: sessionsCompleted,
         next_session_date: nextSessionDate,
     }

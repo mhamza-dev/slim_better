@@ -95,6 +95,11 @@ export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetai
                                 <div className="text-xl font-semibold text-primaryDark">
                                     {selectedPackage.patients?.name || 'Unknown Patient'}
                                 </div>
+                                {selectedPackage.patients?.phone_number && (
+                                    <div className="text-sm text-gray-600 mt-1">
+                                        {selectedPackage.patients.phone_number}
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
 

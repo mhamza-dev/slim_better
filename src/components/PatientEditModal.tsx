@@ -14,7 +14,7 @@ interface PatientEditModalProps {
 export function PatientEditModal({ patientId, isOpen, onClose, onSuccess }: PatientEditModalProps) {
     const { user } = useAuth()
     const [loading, setLoading] = useState(false)
-    const [form, setForm] = useState<Partial<Patient>>({ name: '', phone_number: '', address: '', date_of_birth: '', branch_name: '' })
+    const [form, setForm] = useState<Partial<Patient>>({ name: '', phone_number: '', address: '', age: null, branch_name: '' })
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
@@ -66,7 +66,7 @@ export function PatientEditModal({ patientId, isOpen, onClose, onSuccess }: Pati
                 name: form.name,
                 phone_number: form.phone_number,
                 address: form.address,
-                date_of_birth: form.date_of_birth || null,
+                age: form.age,
                 branch_name: form.branch_name,
                 created_by: user?.id,
             }).eq('id', patientId)
@@ -145,13 +145,15 @@ export function PatientEditModal({ patientId, isOpen, onClose, onSuccess }: Pati
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Date of Birth
+                                Age
                             </label>
                             <input
-                                type="date"
+                                type="number"
+                                min="0"
+                                max="150"
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                value={form.date_of_birth || ''}
-                                onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })}
+                                value={form.age || ''}
+                                onChange={(e) => setForm({ ...form, age: e.target.value ? Number(e.target.value) : null })}
                             />
                         </div>
 

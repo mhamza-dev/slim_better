@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import type { Patient, BuyedPackageWithCreator } from '../types/db'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
@@ -33,7 +33,6 @@ function RoleGuardDelete({ createdByEmail, onDelete }: { createdByEmail: string 
 
 export default function PatientDetail() {
     const { id } = useParams()
-    const navigate = useNavigate()
     const { user } = useAuth()
     const [patient, setPatient] = useState<Patient | null>(null)
     const [packages, setPackages] = useState<BuyedPackageWithCreator[]>([])
@@ -66,21 +65,7 @@ export default function PatientDetail() {
         if (items) setPackages(items)
     }, [pkgState, id])
 
-    async function removePatient() {
-        if (!confirm('Delete this patient?')) return
-        try {
-            // Soft delete patient and related packages
-            const { error } = await supabase.from('patients').update({ is_deleted: true }).eq('id', id)
-            if (error) throw error
-            const { error: pkgErr } = await supabase.from('buyed_packages').update({ is_deleted: true }).eq('patient_id', id)
-            if (pkgErr) throw pkgErr
-            navigate('/patients')
-        } catch (e: any) {
-            alert(e?.message || 'Failed to delete')
-        }
-    }
-
-    const age = patient?.date_of_birth ? Math.floor((Date.now() - new Date(patient.date_of_birth).getTime()) / (1000 * 60 * 60 * 24 * 365.25)) : null
+    const age = patient?.age ?? null
 
     return (
         <div>
@@ -100,7 +85,6 @@ export default function PatientDetail() {
                                     <div className="text-sm text-gray-600">({age !== null ? `${age} yrs` : 'Age —'})</div>
                                 </div>
                             </div>
-                            <Button variant="danger" className="gap-2" onClick={removePatient}><Trash2 size={16} /> Delete</Button>
                         </CardHeader>
                         <CardContent>
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -113,8 +97,8 @@ export default function PatientDetail() {
                                     <div className="font-semibold text-primary">{patient?.address || '-'}</div>
                                 </div>
                                 <div>
-                                    <div className="text-xs text-[#335] mb-1">DOB</div>
-                                    <div className="font-semibold text-primary">{patient?.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : '-'}</div>
+                                    <div className="text-xs text-[#335] mb-1">Age</div>
+                                    <div className="font-semibold text-primary">{patient?.age ? `${patient.age} years` : '-'}</div>
                                 </div>
                                 <div>
                                     <div className="text-xs text-[#335] mb-1">Branch</div>
@@ -515,18 +499,18 @@ function BuyedPackageForm({ patientId, items, user, patientName }: { patientId: 
                                 </td></tr>
                             ) : filteredPackages.map((p) => (
                                 <tr key={p.id} className="border-t border-[#e6eef8] cursor-pointer" onClick={() => handleViewSessions(p)}>
-                                    <td className="p-2 text-xs truncate max-w-[80px]" title={p.created_by === user.id ? 'You' : (p.creator?.email || '-')}>
+                                    <td className="p-2 text-sm truncate max-w-[80px]" title={p.created_by === user.id ? 'You' : (p.creator?.email || '-')}>
                                         {p.created_by === user.id ? 'You' : (p.creator?.email || '-')}
                                     </td>
-                                    <td className="p-2 text-xs text-left">{p.no_of_sessions}</td>
-                                    <td className="p-2 text-xs text-left">{p.sessions_completed}</td>
-                                    <td className="p-2 text-xs text-left">{p.gap_between_sessions}</td>
-                                    <td className="p-2 text-xs">{new Date(p.start_date).toLocaleDateString()}</td>
-                                    <td className="p-2 text-xs">{p.next_session_date ? new Date(p.next_session_date).toLocaleDateString() : '-'}</td>
-                                    <td className="p-2 text-xs">PKR {p.total_payment.toFixed(0)}</td>
-                                    <td className="p-2 text-xs">PKR {p.paid_payment.toFixed(0)}</td>
-                                    <td className="p-2 text-xs">PKR {(p.total_payment - (p.paid_payment + p.advance_payment)).toFixed(0)}</td>
-                                    <td className="p-2 text-xs">PKR {p.advance_payment.toFixed(0)}</td>
+                                    <td className="p-2 text-sm text-left">{p.no_of_sessions}</td>
+                                    <td className="p-2 text-sm text-left">{p.sessions_completed}</td>
+                                    <td className="p-2 text-sm text-left">{p.gap_between_sessions}</td>
+                                    <td className="p-2 text-sm">{new Date(p.start_date).toLocaleDateString()}</td>
+                                    <td className="p-2 text-sm">{p.next_session_date ? new Date(p.next_session_date).toLocaleDateString() : '-'}</td>
+                                    <td className="p-2 text-sm">PKR {p.total_payment.toFixed(0)}</td>
+                                    <td className="p-2 text-sm">PKR {p.paid_payment.toFixed(0)}</td>
+                                    <td className="p-2 text-sm">PKR {(p.total_payment - (p.paid_payment + p.advance_payment)).toFixed(0)}</td>
+                                    <td className="p-2 text-sm">PKR {p.advance_payment.toFixed(0)}</td>
                                     <td className="p-2 text-center">
                                         <div className="flex items-center justify-center gap-1">
                                             <button
@@ -534,14 +518,14 @@ function BuyedPackageForm({ patientId, items, user, patientName }: { patientId: 
                                                 className="p-1 hover:bg-gray-100 rounded transition-colors"
                                                 title="Edit package"
                                             >
-                                                <Edit size={16} className="text-green-600" />
+                                                <Edit size={20} className="text-green-600" />
                                             </button>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleDeletePackage(p.id) }}
                                                 className="p-1 hover:bg-red-100 rounded transition-colors"
                                                 title="Delete package"
                                             >
-                                                <Trash2 size={16} className="text-red-600" />
+                                                <Trash2 size={20} className="text-red-600" />
                                             </button>
                                         </div>
                                     </td>
