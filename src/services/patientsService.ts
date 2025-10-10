@@ -28,7 +28,7 @@ export async function updatePatient(id: number, input: Partial<Patient>): Promis
 export async function fetchPatientsList(limit = 200): Promise<Patient[]> {
     const { data, error } = await supabase
         .from('patients')
-        .select('id, name, phone_number, address, age, branch_name, created_at, updated_at, created_by')
+        .select('id, name, phone_number, address, age, branch_name, created_at, updated_at, created_by, updated_by')
         .eq('is_deleted', false)
         .order('id', { ascending: false })
         .limit(limit)
@@ -36,21 +36,25 @@ export async function fetchPatientsList(limit = 200): Promise<Patient[]> {
 
     const patients = (data as Patient[]) ?? []
 
-    // Get creator emails for patients that have created_by
+    // Get creator and updater emails for patients
     const creatorIds = [...new Set(patients.map(p => p.created_by).filter(Boolean))]
-    if (creatorIds.length > 0) {
+    const updaterIds = [...new Set(patients.map(p => p.updated_by).filter(Boolean))]
+    const allIds = [...new Set([...creatorIds, ...updaterIds])]
+
+    if (allIds.length > 0) {
         const { data: profiles, error: profilesError } = await supabase
             .from('profiles')
             .select('id, email')
-            .in('id', creatorIds)
+            .in('id', allIds)
         if (profilesError) throw profilesError
 
         const profilesMap = new Map(profiles?.map(p => [p.id, p.email]) ?? [])
 
-        // Add creator_email to each patient
+        // Add creator_email and updated_by_email to each patient
         return patients.map(patient => ({
             ...patient,
-            creator_email: patient.created_by ? profilesMap.get(patient.created_by) ?? null : null
+            creator_email: patient.created_by ? profilesMap.get(patient.created_by) ?? null : null,
+            updated_by_email: patient.updated_by ? profilesMap.get(patient.updated_by) ?? null : null
         }))
     }
 

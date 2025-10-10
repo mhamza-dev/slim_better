@@ -68,7 +68,7 @@ export function PatientEditModal({ patientId, isOpen, onClose, onSuccess }: Pati
                 address: form.address,
                 age: form.age,
                 branch_name: form.branch_name,
-                created_by: user?.id,
+                updated_by: user?.id,
             }).eq('id', patientId)
 
             if (error) throw error

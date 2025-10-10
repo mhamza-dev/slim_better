@@ -113,21 +113,22 @@ export default function Patients() {
                         <table className="w-full min-w-[700px]">
                             <thead>
                                 <tr className="bg-[#f1f6ff] text-primaryDark">
-                                    <th className="text-left p-3 text-sm font-semibold w-[16%]">Name</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[14%]">Phone</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[7%]">Age</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[18%]">Address</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[16%]">Branch</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[10%]">Created</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[13%]">Created by</th>
-                                    <th className="text-right p-3 text-sm font-semibold w-[6%]">Actions</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[14%]">Name</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[12%]">Phone</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[6%]">Age</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[16%]">Address</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[14%]">Branch</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[9%]">Created</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[11%]">Created by</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[11%]">Updated by</th>
+                                    <th className="text-right p-3 text-sm font-semibold w-[7%]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td className="p-3" colSpan={8}>Loading…</td></tr>
+                                    <tr><td className="p-3" colSpan={9}>Loading…</td></tr>
                                 ) : filteredPatients.length === 0 ? (
-                                    <tr><td className="p-3" colSpan={8}>
+                                    <tr><td className="p-3" colSpan={9}>
                                         {searchTerm ? `No patients found matching "${searchTerm}"` : 'No patients yet'}
                                     </td></tr>
                                 ) : (
@@ -139,7 +140,8 @@ export default function Patients() {
                                             <td className="p-3 truncate max-w-[150px]" title={p.address ?? ''}>{p.address ?? '-'}</td>
                                             <td className="p-3 text-sm truncate max-w-[120px]" title={p.branch_name ?? ''}>{p.branch_name ?? '-'}</td>
                                             <td className="p-3 text-sm">{p.created_at ? new Date(p.created_at).toLocaleDateString() : '-'}</td>
-                                            <td className="p-3 text-sm truncate max-w-[100px]" title={p.creator_email ?? ''}>{p.creator_email ?? '-'}</td>
+                                            <td className="p-3 text-sm truncate max-w-[100px]">{p.creator_email ?? '-'}</td>
+                                            <td className="p-3 text-sm truncate max-w-[100px]">{p.updated_by_email ?? '-'}</td>
                                             <td className="p-3 text-right">
                                                 <div className="flex items-center justify-end gap-1">
                                                     <button
@@ -225,7 +227,8 @@ function PatientsModalForm({ onDone }: { onDone: () => void }) {
                         address: (values.address as string) || null,
                         age: values.age ? Number(values.age) : null,
                         branch_name: values.branch_name as string,
-                        created_by: user?.id || null
+                        created_by: user?.id || null,
+                        updated_by: null
                     })
                 } catch (e) {
                     setSubmitting(false)

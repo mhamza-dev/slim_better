@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { supabase } from '../lib/supabaseClient'
-import type { Patient } from '../types/db'
 import { useAuth } from '../hooks/useAuth'
 import { Card, CardContent, CardHeader } from '../components/ui/Card'
+import { FormBuilder, type FormFieldConfig } from '../components/ui/Form'
+import { createPatient, updatePatient } from '../services/patientsService'
+import { supabase } from '../lib/supabaseClient'
+import * as Yup from 'yup'
 
 export default function PatientForm() {
     const navigate = useNavigate()
@@ -11,48 +13,80 @@ export default function PatientForm() {
     const { user } = useAuth()
     const editing = Boolean(id)
     const [loading, setLoading] = useState(false)
-    const [form, setForm] = useState<Partial<Patient>>({ name: '', phone_number: '', address: '', date_of_birth: '', branch_name: '' })
-    const [error, setError] = useState<string | null>(null)
+    const [initialValues, setInitialValues] = useState({ name: '', phone_number: '', address: '', age: '', branch_name: '' })
+
+    const validationSchema = Yup.object({
+        name: Yup.string().required('Required'),
+        phone_number: Yup.string().required('Required'),
+        address: Yup.string().nullable(),
+        age: Yup.number().min(0).max(150).nullable(),
+        branch_name: Yup.string().required('Required'),
+    })
+
+    const fields: FormFieldConfig[] = [
+        { type: 'text', name: 'name', label: 'Name' },
+        { type: 'text', name: 'phone_number', label: 'Phone number' },
+        { type: 'textarea', name: 'address', label: 'Address', rows: 3 },
+        { type: 'number', name: 'age', label: 'Age', min: 0, max: 150 },
+        {
+            type: 'select', name: 'branch_name', label: 'Branch', options: [
+                { label: 'Canal Road Branch, Fsd', value: 'Canal Road Branch, Fsd' },
+                { label: 'Kohinoor Branch, Fsd', value: 'Kohinoor Branch, Fsd' },
+            ]
+        },
+    ]
 
     useEffect(() => {
-        if (!editing) return
-        let mounted = true
-            ; (async () => {
+        if (!editing || !id) return
+
+        const loadPatient = async () => {
+            try {
                 const { data, error } = await supabase.from('patients').select('*').eq('id', id).single()
-                if (error) { setError(error.message); return }
-                if (mounted && data) setForm(data)
-            })()
-        return () => { mounted = false }
+                if (error) throw error
+                if (data) {
+                    setInitialValues({
+                        name: data.name || '',
+                        phone_number: data.phone_number || '',
+                        address: data.address || '',
+                        age: data.age ? String(data.age) : '',
+                        branch_name: data.branch_name || '',
+                    })
+                }
+            } catch (error) {
+                console.error('Failed to load patient:', error)
+            }
+        }
+
+        loadPatient()
     }, [editing, id])
 
-    async function onSubmit(e: React.FormEvent) {
-        e.preventDefault()
+    const handleSubmit = async (values: any) => {
         setLoading(true)
-        setError(null)
         try {
-            if (editing) {
-                const { error } = await supabase.from('patients').update({
-                    name: form.name,
-                    phone_number: form.phone_number,
-                    address: form.address,
-                    date_of_birth: form.date_of_birth || null,
-                    branch_name: form.branch_name,
-                    created_by: user?.id,
-                }).eq('id', id)
-                if (error) throw error
-            } else {
-                const { error } = await supabase.from('patients').insert({
-                    name: form.name,
-                    phone_number: form.phone_number,
-                    address: form.address,
-                    date_of_birth: form.date_of_birth || null,
-                    branch_name: form.branch_name,
+            if (editing && id) {
+                await updatePatient(Number(id), {
+                    name: values.name as string,
+                    phone_number: values.phone_number as string,
+                    address: (values.address as string) || null,
+                    age: values.age ? Number(values.age) : null,
+                    branch_name: values.branch_name as string,
+                    updated_by: user?.id || null,
                 })
-                if (error) throw error
+            } else {
+                await createPatient({
+                    name: values.name as string,
+                    phone_number: values.phone_number as string,
+                    address: (values.address as string) || null,
+                    age: values.age ? Number(values.age) : null,
+                    branch_name: values.branch_name as string,
+                    created_by: user?.id || null,
+                    updated_by: null,
+                })
             }
             navigate('/patients')
-        } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'An error occurred')
+        } catch (error) {
+            console.error('Failed to save patient:', error)
+            alert(error instanceof Error ? error.message : 'Failed to save patient')
         } finally {
             setLoading(false)
         }
@@ -64,37 +98,17 @@ export default function PatientForm() {
             <Card className="max-w-xl mx-auto">
                 <CardHeader />
                 <CardContent>
-                    <form onSubmit={onSubmit} className="space-y-3">
-                        {error && <div className="text-red-700 text-sm">{error}</div>}
-                        <div>
-                            <label className="block text-xs text-[#335] mb-1">Name</label>
-                            <input className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-[#335] mb-1">Phone number</label>
-                            <input className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" value={form.phone_number || ''} onChange={(e) => setForm({ ...form, phone_number: e.target.value })} required />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-[#335] mb-1">Address</label>
-                            <textarea className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" value={form.address || ''} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-[#335] mb-1">Date of birth</label>
-                            <input type="date" className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" value={form.date_of_birth || ''} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-[#335] mb-1">Branch</label>
-                            <select className="w-full px-3 py-2 border border-[#cfe0ff] rounded-lg" value={form.branch_name || ''} onChange={(e) => setForm({ ...form, branch_name: e.target.value })} required>
-                                <option value="">Select a branch</option>
-                                <option value="Canal Road Branch, Fsd">Canal Road Branch, Fsd</option>
-                                <option value="Kohinoor Branch, Fsd">Kohinoor Branch, Fsd</option>
-                            </select>
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-2">
-                            <button className="rounded-lg bg-primary text-white px-3 py-2 font-semibold flex-1" disabled={loading} type="submit">{editing ? 'Save changes' : 'Create'}</button>
-                            <button className="rounded-lg bg-gray-100 text-primaryDark px-3 py-2 flex-1 sm:flex-none" type="button" onClick={() => history.back()}>Cancel</button>
-                        </div>
-                    </form>
+                    <FormBuilder
+                        initialValues={initialValues}
+                        validationSchema={validationSchema}
+                        fields={fields}
+                        onSubmit={handleSubmit}
+                        submitLabel={editing ? 'Save changes' : 'Create'}
+                        cancelLabel="Cancel"
+                        onCancel={() => navigate('/patients')}
+                        layout="one-column"
+                        isSubmitting={loading}
+                    />
                 </CardContent>
             </Card>
         </div>
