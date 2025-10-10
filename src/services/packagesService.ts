@@ -171,4 +171,66 @@ export async function deletePackageById(id: number): Promise<void> {
     if (error) throw error
 }
 
+export async function fetchPackageBySessionId(sessionId: number): Promise<DashboardPackageRow | null> {
+    // First get the package ID from the session
+    const { data: sessionData, error: sessionError } = await supabase
+        .from('sessions')
+        .select('buyed_package_id')
+        .eq('id', sessionId)
+        .single()
+
+    if (sessionError) throw sessionError
+    if (!sessionData) return null
+
+    const packageId = sessionData.buyed_package_id
+
+    // Now fetch the package details
+    const { data: pkgData, error: pkgError } = await supabase
+        .from('buyed_packages')
+        .select('id,total_payment,paid_payment,advance_payment,no_of_sessions,gap_between_sessions,start_date,patients(name)')
+        .eq('id', packageId)
+        .single()
+
+    if (pkgError) throw pkgError
+    if (!pkgData) return null
+
+    const today = new Date().toISOString().slice(0, 10)
+
+    // Get next session date
+    const { data: nextSessionData, error: nextSessionError } = await supabase
+        .from('sessions')
+        .select('scheduled_date')
+        .eq('buyed_package_id', packageId)
+        .in('status', ['planned', 'rescheduled'])
+        .gte('scheduled_date', today)
+        .order('scheduled_date', { ascending: true })
+        .limit(1)
+
+    if (nextSessionError) throw nextSessionError
+    const nextSessionDate = nextSessionData?.[0]?.scheduled_date ? shiftSundayToMonday(nextSessionData[0].scheduled_date) : null
+
+    // Get completed sessions count
+    const { data: completedData, error: completedError } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('buyed_package_id', packageId)
+        .eq('status', 'completed')
+
+    if (completedError) throw completedError
+    const sessionsCompleted = completedData?.length || 0
+
+    return {
+        id: pkgData.id,
+        total_payment: pkgData.total_payment,
+        paid_payment: pkgData.paid_payment,
+        advance_payment: pkgData.advance_payment,
+        no_of_sessions: pkgData.no_of_sessions,
+        gap_between_sessions: pkgData.gap_between_sessions,
+        start_date: pkgData.start_date,
+        patients: pkgData.patients as unknown as { name: string } | null,
+        sessions_completed: sessionsCompleted,
+        next_session_date: nextSessionDate,
+    }
+}
+
 

@@ -142,7 +142,10 @@ function SessionsList({ packageId, patientId }: { packageId: number; patientId: 
         if (rescheduleSessionThunk.rejected.match(result)) {
             alert(result.error.message || 'Failed to reschedule')
         } else {
-            dispatch(fetchSessionsByPackageThunk(packageId))
+            // Refresh sessions list to show updated date
+            await dispatch(fetchSessionsByPackageThunk(packageId))
+            // Also refresh packages to update next_session_date
+            await dispatch(fetchPackagesByPatient(patientId))
         }
     }
 
@@ -169,9 +172,10 @@ function SessionsList({ packageId, patientId }: { packageId: number; patientId: 
                                     if (completeSessionThunk.rejected.match(result)) {
                                         alert(result.error.message || 'Failed to complete')
                                     } else {
-                                        dispatch(fetchSessionsByPackageThunk(packageId))
-                                        // also refresh package list (completed count and next date)
-                                        dispatch(fetchPackagesByPatient(patientId))
+                                        // Refresh sessions list to show updated status
+                                        await dispatch(fetchSessionsByPackageThunk(packageId))
+                                        // Also refresh package list (completed count and next date)
+                                        await dispatch(fetchPackagesByPatient(patientId))
                                     }
                                 }}>Complete</button>
                             </div>
@@ -219,9 +223,15 @@ function TransactionsList({ packageId, patientId }: { packageId: number; patient
                                 // @ts-ignore
                                 const { updateTransaction: updateTx } = await import('../store/transactionsSlice')
                                 // update
-                                await (dispatch as unknown as (args: unknown) => Promise<unknown>)(updateTx({ id: t.id, buyed_package_id: packageId, amount: Number(newAmount), date: newDate || null }))
-                                await dispatch(fetchTransactionsByPackageThunk(packageId))
-                                await dispatch(fetchPackagesByPatient(patientId))
+                                const result = await (dispatch as unknown as (args: unknown) => Promise<unknown>)(updateTx({ id: t.id, buyed_package_id: packageId, amount: Number(newAmount), date: newDate || null }))
+                                if (updateTx.fulfilled.match(result)) {
+                                    // Refresh transactions list to show updated data
+                                    await dispatch(fetchTransactionsByPackageThunk(packageId))
+                                    // Refresh packages to update paid_payment
+                                    await dispatch(fetchPackagesByPatient(patientId))
+                                } else {
+                                    alert('Failed to update payment')
+                                }
                             }}>Edit</button>
                             <RoleGuardDelete createdByEmail={t.creator_email} onDelete={async () => {
                                 if (!confirm('Delete this payment?')) return

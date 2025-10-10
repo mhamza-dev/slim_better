@@ -12,6 +12,7 @@ import { fetchDashboardPackages } from '../services/packagesService'
 import { fetchPlannedSessionsByDateRange, type DashboardSessionRow } from '../services/sessionsService'
 //
 import { DateRangeInput } from '../components/ui/DateRange'
+import { PackageDetailsModal } from '../components/PackageDetailsModal'
 
 type PackageRow = {
     id: number
@@ -32,6 +33,8 @@ export default function Dashboard() {
     const [filterDate, setFilterDate] = useState<string>(() => new Date().toISOString().split('T')[0])
     const [filterEndDate, setFilterEndDate] = useState<string>('')
     const [rangeSessions, setRangeSessions] = useState<DashboardSessionRow[]>([])
+    const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null)
+    const [isPackageModalOpen, setIsPackageModalOpen] = useState(false)
     const dispatch = useAppDispatch()
     const patients = useAppSelector((s) => s.patients.items)
 
@@ -87,6 +90,15 @@ export default function Dashboard() {
     const formatCurrency = (amount: number) =>
         `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 0 })}`
 
+    const handleSessionClick = (sessionId: number) => {
+        setSelectedSessionId(sessionId)
+        setIsPackageModalOpen(true)
+    }
+
+    const handleCloseModal = () => {
+        setIsPackageModalOpen(false)
+        setSelectedSessionId(null)
+    }
 
     // Fetch sessions for the selected day/range
     useEffect(() => {
@@ -216,7 +228,11 @@ export default function Dashboard() {
                                     const badgeVariant = 'blue'
                                     const badgeText = new Date(s.scheduled_date).toLocaleDateString()
                                     return (
-                                        <div key={s.id} className="flex items-center justify-between bg-white border border-[#e6eef8] rounded-xl p-3">
+                                        <div
+                                            key={s.id}
+                                            className="flex items-center justify-between bg-white border border-[#e6eef8] rounded-xl p-3 cursor-pointer hover:bg-gray-50 hover:border-primary transition-colors"
+                                            onClick={() => handleSessionClick(s.id)}
+                                        >
                                             <div className="flex-1 min-w-0">
                                                 <div className="font-bold truncate">{s.patient_name ?? 'Patient'}</div>
                                                 <div className="text-sm text-[#335] truncate">{s.status}</div>
@@ -232,6 +248,12 @@ export default function Dashboard() {
                     </CardContent>
                 </Card>
             </div>
+
+            <PackageDetailsModal
+                isOpen={isPackageModalOpen}
+                onClose={handleCloseModal}
+                sessionId={selectedSessionId}
+            />
         </div>
     )
 }
