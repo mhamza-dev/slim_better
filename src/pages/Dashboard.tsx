@@ -214,7 +214,7 @@ export default function Dashboard() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-3">
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
                             {loading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
                                     <div key={i} className="h-20 rounded-xl bg-gray-100 animate-pulse" />
