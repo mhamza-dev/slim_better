@@ -53,10 +53,6 @@ export function WhatsAppButton({
 
             message = `Hi ${patientName}! \nYou have an appointment scheduled for ${formattedDate}`
 
-            if (appointmentDetails.sessionNumber) {
-                message += `\nSession #${appointmentDetails.sessionNumber}`
-            }
-
             if (appointmentDetails.time) {
                 message += `\nTime: ${appointmentDetails.time}`
             }
