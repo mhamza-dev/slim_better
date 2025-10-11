@@ -3,6 +3,7 @@ import type {
     Patient,
     BuyedPackage,
     BuyedPackageWithCreator,
+    BuyedPackageWithCreatorAndPatient,
     Session,
     Transaction,
     Profile,
@@ -313,13 +314,17 @@ export const packageQueries = {
     },
 
     // Get package by session ID with calculated sessions_completed and next_session_date
-    async getBySessionId(sessionId: number): Promise<BuyedPackageWithCreator | null> {
+    async getBySessionId(sessionId: number): Promise<BuyedPackageWithCreatorAndPatient | null> {
         const { data, error } = await supabase
             .from('sessions')
             .select(`
                 buyed_packages!inner(
                     *,
-                    creator:created_by(id,email)
+                    creator:created_by(id,email),
+                    patients!inner(
+                        name,
+                        phone_number
+                    )
                 )
             `)
             .eq('id', sessionId)

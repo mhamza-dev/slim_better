@@ -9,6 +9,7 @@ import type {
     Patient,
     BuyedPackage,
     BuyedPackageWithCreator,
+    BuyedPackageWithCreatorAndPatient,
     Session,
     Transaction,
     QueryOptions
@@ -80,7 +81,7 @@ export class PackageService {
         return (await enrichWithUserEmails([pkg]))[0]
     }
 
-    static async getBySessionId(sessionId: number): Promise<BuyedPackageWithCreator | null> {
+    static async getBySessionId(sessionId: number): Promise<BuyedPackageWithCreatorAndPatient | null> {
         return await packageQueries.getBySessionId(sessionId)
     }
 
@@ -240,7 +241,7 @@ export class SessionService {
         }
 
         if (sessions.length > 0) {
-            await this.createMany(sessions)
+            await SessionService.createMany(sessions)
         }
     }
 }

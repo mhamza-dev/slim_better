@@ -38,6 +38,11 @@ export type BuyedPackageWithCreator = BuyedPackage & {
     creator: { id: string; email: string | null } | null
 }
 
+export type BuyedPackageWithCreatorAndPatient = BuyedPackageWithCreator & {
+    // When selected with: select('*, creator:created_by(id,email), patients(name,phone_number)')
+    patients: { name: string; phone_number: string } | null
+}
+
 export type Session = {
     id: number
     buyed_package_id: number
