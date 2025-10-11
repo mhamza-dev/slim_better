@@ -61,10 +61,10 @@ export function WhatsAppButton({
                 message += `\nTime: ${appointmentDetails.time}`
             }
 
-            message += '\n\nPlease confirm your availability. Thank you!\n Regards,\n SlimBetter'
+            message += '\n\nPlease confirm your availability. Thank you!\nRegards,\nSlimBetter'
         } else {
             // Default greeting message
-            message = `Hi ${patientName}!\n Thanks for visiting SlimBetter.\n Regards,\n SlimBetter`
+            message = `Hi ${patientName}!\nThanks for visiting SlimBetter.\nRegards,\nSlimBetter`
         }
 
         openWhatsAppChat(phoneNumber, message)
