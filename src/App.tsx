@@ -1,6 +1,7 @@
 import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ToastProvider } from './components/Toast'
+import { AppErrorBoundary, ErrorProvider } from './lib/errorHandling'
 import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
 import Patients from './pages/Patients'
@@ -9,7 +10,6 @@ import PatientDetail from './pages/PatientDetail'
 import NotFound from './pages/NotFound'
 import AppLayout from './layouts/AppLayout'
 import { ProtectedRoute } from './components/ProtectedRoute'
-import { ErrorBoundary } from './components/ErrorBoundary'
 
 function App() {
   const router = createBrowserRouter(createRoutesFromElements(
@@ -27,13 +27,15 @@ function App() {
   ))
 
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <ToastProvider>
-          <RouterProvider router={router} />
-        </ToastProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+    <AppErrorBoundary>
+      <ErrorProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <RouterProvider router={router} />
+          </ToastProvider>
+        </AuthProvider>
+      </ErrorProvider>
+    </AppErrorBoundary>
   )
 }
 

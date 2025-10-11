@@ -556,6 +556,7 @@ function BuyedPackageForm({ patientId, items, user, patientName }: { patientId: 
                             gap_between_sessions: Number(values.gap_between_sessions as number),
                             start_date: values.start_date as string,
                             created_by: values.created_by as string,
+                            updated_by: null,
                             patient_id: patientId,
                         }
                         console.log('Payload:', payload)

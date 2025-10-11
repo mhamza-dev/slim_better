@@ -5,6 +5,7 @@ export type Patient = {
     address: string | null
     age: number | null
     branch_name: string | null
+    is_deleted: boolean
     created_by: string | null
     created_at: string | null
     updated_at: string | null
@@ -24,6 +25,7 @@ export type BuyedPackage = {
     gap_between_sessions: number
     start_date: string
     next_session_date: string | null
+    is_deleted: boolean
     created_by: string | null
     created_at: string | null
     updated_at: string | null
@@ -43,6 +45,7 @@ export type Session = {
     scheduled_date: string // YYYY-MM-DD
     actual_date: string | null // if rescheduled/completed
     status: 'planned' | 'completed' | 'missed' | 'rescheduled'
+    is_deleted: boolean
     created_by: string | null
     created_at: string | null
     updated_at: string | null
@@ -50,6 +53,43 @@ export type Session = {
     // denormalized helper from profiles
     creator_email?: string | null
     updated_by_email?: string | null
+    patient_name?: string | null // Added for dashboard queries
+}
+
+export type Transaction = {
+    id: number
+    buyed_package_id: number
+    amount: number
+    date: string | null
+    is_deleted: boolean
+    created_by: string | null
+    created_at: string | null
+    updated_at: string | null
+    updated_by: string | null
+    // denormalized helper from profiles
+    creator_email?: string | null
+    updated_by_email?: string | null
+}
+
+export type Profile = {
+    id: string // UUID from auth.users
+    email: string | null
+    name?: string | null
+    created_at: string | null
+}
+
+// Base interface for all entities with soft delete support
+export interface SoftDeletableEntity {
+    is_deleted: boolean
+    updated_by: string | null
+    updated_at: string | null
+}
+
+// Query options for including soft-deleted records
+export interface QueryOptions {
+    withDeleted?: boolean
+    limit?: number
+    offset?: number
 }
 
 

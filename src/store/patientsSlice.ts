@@ -18,7 +18,7 @@ const initialState: PatientsState = {
 export const fetchPatients = createAppAsyncThunk<Patient[], void>(
     'patients/fetch',
     async () => {
-        const data = await fetchPatientsList(200)
+        const data = await fetchPatientsList({ limit: 200 })
         return data
     }
 )

@@ -31,8 +31,8 @@ export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetai
         onClose()
     }
 
-    const formatCurrency = (amount: number) =>
-        `PKR ${amount.toLocaleString('en-PK', { maximumFractionDigits: 0 })}`
+    const formatCurrency = (amount: number | null | undefined) =>
+        `PKR ${(amount || 0).toLocaleString('en-PK', { maximumFractionDigits: 0 })}`
 
     const formatDate = (dateString: string) =>
         new Date(dateString).toLocaleDateString('en-US', {
@@ -43,22 +43,33 @@ export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetai
 
     const getRemainingSessions = () => {
         if (!selectedPackage) return 0
-        return selectedPackage.no_of_sessions - selectedPackage.sessions_completed
+        const total = selectedPackage.no_of_sessions || 0
+        const completed = selectedPackage.sessions_completed || 0
+        return total - completed
     }
 
     const getRemainingPayment = () => {
         if (!selectedPackage) return 0
-        return selectedPackage.total_payment - (selectedPackage.paid_payment + selectedPackage.advance_payment)
+        const total = selectedPackage.total_payment || 0
+        const paid = selectedPackage.paid_payment || 0
+        const advance = selectedPackage.advance_payment || 0
+        return total - (paid + advance)
     }
 
     const getProgressPercentage = () => {
-        if (!selectedPackage || selectedPackage.no_of_sessions === 0) return 0
-        return Math.round((selectedPackage.sessions_completed / selectedPackage.no_of_sessions) * 100)
+        if (!selectedPackage) return 0
+        const total = selectedPackage.no_of_sessions || 0
+        const completed = selectedPackage.sessions_completed || 0
+        if (total === 0) return 0
+        return Math.round((completed / total) * 100)
     }
 
     const getPaymentProgressPercentage = () => {
-        if (!selectedPackage || selectedPackage.total_payment === 0) return 0
-        return Math.round((selectedPackage.paid_payment / selectedPackage.total_payment) * 100)
+        if (!selectedPackage) return 0
+        const total = selectedPackage.total_payment || 0
+        const paid = selectedPackage.paid_payment || 0
+        if (total === 0) return 0
+        return Math.round((paid / total) * 100)
     }
 
     return (
@@ -123,7 +134,7 @@ export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetai
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <div className="text-sm text-gray-600">Gap Between Sessions</div>
-                                        <div className="font-semibold">{selectedPackage.gap_between_sessions} days</div>
+                                        <div className="font-semibold">{selectedPackage.gap_between_sessions || 0} days</div>
                                     </div>
                                     <div>
                                         <div className="text-sm text-gray-600">Next Session</div>
@@ -143,7 +154,7 @@ export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetai
                             <CardContent className="space-y-4">
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="text-center">
-                                        <div className="text-2xl font-bold text-primary">{selectedPackage.sessions_completed}</div>
+                                        <div className="text-2xl font-bold text-primary">{selectedPackage.sessions_completed || 0}</div>
                                         <div className="text-sm text-gray-600">Completed</div>
                                     </div>
                                     <div className="text-center">
@@ -151,7 +162,7 @@ export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetai
                                         <div className="text-sm text-gray-600">Remaining</div>
                                     </div>
                                     <div className="text-center">
-                                        <div className="text-2xl font-bold text-gray-700">{selectedPackage.no_of_sessions}</div>
+                                        <div className="text-2xl font-bold text-gray-700">{selectedPackage.no_of_sessions || 0}</div>
                                         <div className="text-sm text-gray-600">Total</div>
                                     </div>
                                 </div>
