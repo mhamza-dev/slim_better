@@ -146,8 +146,8 @@ export default function Patients() {
                                             <td className="p-3 text-sm truncate max-w-[100px]">{p.creator_email ?? '-'}</td>
                                             <td className="p-3 text-sm truncate max-w-[100px]">{p.updated_by_email ?? '-'}</td>
                                             <td className="p-3 text-center">
-                                                <WhatsAppButton 
-                                                    phoneNumber={p.phone_number} 
+                                                <WhatsAppButton
+                                                    phoneNumber={p.phone_number}
                                                     patientName={p.name}
                                                     size="sm"
                                                     variant="ghost"

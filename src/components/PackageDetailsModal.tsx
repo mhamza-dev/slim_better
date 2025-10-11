@@ -110,7 +110,7 @@ export function PackageDetailsModal({ isOpen, onClose, sessionId, sessionData }:
                                 <CardTitle className="text-lg flex items-center justify-between">
                                     Patient Information
                                     {selectedPackage.patients?.phone_number && (
-                                        <WhatsAppButton 
+                                        <WhatsAppButton
                                             phoneNumber={selectedPackage.patients.phone_number}
                                             patientName={selectedPackage.patients.name}
                                             size="sm"
