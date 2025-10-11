@@ -6,6 +6,7 @@ import { PatientEditModal } from '../components/PatientEditModal'
 import { Button } from '../components/ui/Button'
 import { Plus, Search, Download, Edit, Trash2 } from 'lucide-react'
 import { Card, CardContent } from '../components/ui/Card'
+import { WhatsAppButton } from '../components/ui/WhatsAppButton'
 import type { Patient } from '../types/db'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { fetchPatients } from '../store/patientsSlice'
@@ -114,28 +115,29 @@ export default function Patients() {
                         <table className="w-full min-w-[700px]">
                             <thead>
                                 <tr className="bg-[#f1f6ff] text-primaryDark">
-                                    <th className="text-left p-3 text-sm font-semibold w-[14%]">Name</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[12%]">Phone</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[6%]">Age</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[16%]">Address</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[14%]">Branch</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[9%]">Created</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[11%]">Created by</th>
-                                    <th className="text-left p-3 text-sm font-semibold w-[11%]">Updated by</th>
-                                    <th className="text-right p-3 text-sm font-semibold w-[7%]">Actions</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[12%]">Name</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[10%]">Phone</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[5%]">Age</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[14%]">Address</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[12%]">Branch</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[8%]">Created</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[10%]">Created by</th>
+                                    <th className="text-left p-3 text-sm font-semibold w-[10%]">Updated by</th>
+                                    <th className="text-center p-3 text-sm font-semibold w-[6%]">WhatsApp</th>
+                                    <th className="text-right p-3 text-sm font-semibold w-[6%]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td className="p-3" colSpan={9}>Loading…</td></tr>
+                                    <tr><td className="p-3" colSpan={10}>Loading…</td></tr>
                                 ) : filteredPatients.length === 0 ? (
-                                    <tr><td className="p-3" colSpan={9}>
+                                    <tr><td className="p-3" colSpan={10}>
                                         {searchTerm ? `No patients found matching "${searchTerm}"` : 'No patients yet'}
                                     </td></tr>
                                 ) : (
                                     filteredPatients.map((p: Patient) => (
-                                        <tr key={p.id} className="border-t border-[#e6eef8] hover:bg-blue-50/30 even:bg-blue-50/20 cursor-pointer" onClick={() => navigate(`/patients/${p.id}`)}>
-                                            <td className="p-3 truncate max-w-[120px]" title={p.name}>{p.name}</td>
+                                        <tr key={p.id} className="border-t border-[#e6eef8] hover:bg-blue-50/30 even:bg-blue-50/20">
+                                            <td className="p-3 truncate max-w-[120px] cursor-pointer" title={p.name} onClick={() => navigate(`/patients/${p.id}`)}>{p.name}</td>
                                             <td className="p-3 text-sm">{p.phone_number}</td>
                                             <td className="p-3 text-sm text-left">{p.age ?? '-'}</td>
                                             <td className="p-3 truncate max-w-[150px]" title={p.address ?? ''}>{p.address ?? '-'}</td>
@@ -143,6 +145,15 @@ export default function Patients() {
                                             <td className="p-3 text-sm">{p.created_at ? new Date(p.created_at).toLocaleDateString() : '-'}</td>
                                             <td className="p-3 text-sm truncate max-w-[100px]">{p.creator_email ?? '-'}</td>
                                             <td className="p-3 text-sm truncate max-w-[100px]">{p.updated_by_email ?? '-'}</td>
+                                            <td className="p-3 text-center">
+                                                <WhatsAppButton 
+                                                    phoneNumber={p.phone_number} 
+                                                    patientName={p.name}
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    messageType="greeting"
+                                                />
+                                            </td>
                                             <td className="p-3 text-right">
                                                 <div className="flex items-center justify-end gap-1">
                                                     <button

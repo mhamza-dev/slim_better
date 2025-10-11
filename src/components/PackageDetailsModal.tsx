@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import Modal from './Modal'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Badge } from './ui/Badge'
+import { WhatsAppButton } from './ui/WhatsAppButton'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { fetchPackageDetailsBySession, clearPackageDetails, setSessionId } from '../store/packageDetailsSlice'
 
@@ -9,9 +10,15 @@ interface PackageDetailsModalProps {
     isOpen: boolean
     onClose: () => void
     sessionId: number | null
+    sessionData?: {
+        id: number
+        scheduled_date: string
+        status: string
+        patient_name: string | null
+    } | null
 }
 
-export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetailsModalProps) {
+export function PackageDetailsModal({ isOpen, onClose, sessionId, sessionData }: PackageDetailsModalProps) {
     const dispatch = useAppDispatch()
     const { selectedPackage, loading, error } = useAppSelector((state) => state.packageDetails)
 
@@ -100,7 +107,22 @@ export function PackageDetailsModal({ isOpen, onClose, sessionId }: PackageDetai
                         {/* Patient Info */}
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-lg">Patient Information</CardTitle>
+                                <CardTitle className="text-lg flex items-center justify-between">
+                                    Patient Information
+                                    {selectedPackage.patients?.phone_number && (
+                                        <WhatsAppButton 
+                                            phoneNumber={selectedPackage.patients.phone_number}
+                                            patientName={selectedPackage.patients.name}
+                                            size="sm"
+                                            variant="outline"
+                                            messageType="appointment"
+                                            appointmentDetails={sessionData ? {
+                                                date: sessionData.scheduled_date,
+                                                sessionNumber: sessionData.id
+                                            } : undefined}
+                                        />
+                                    )}
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-xl font-semibold text-primaryDark">

@@ -95,6 +95,10 @@ export default function Dashboard() {
         setIsPackageModalOpen(true)
     }
 
+    const getSessionData = (sessionId: number) => {
+        return rangeSessions.find(s => s.id === sessionId)
+    }
+
     const handleCloseModal = () => {
         setIsPackageModalOpen(false)
         setSelectedSessionId(null)
@@ -311,6 +315,7 @@ export default function Dashboard() {
                 isOpen={isPackageModalOpen}
                 onClose={handleCloseModal}
                 sessionId={selectedSessionId}
+                sessionData={selectedSessionId ? getSessionData(selectedSessionId) : null}
             />
         </div>
     )
