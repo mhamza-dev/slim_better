@@ -39,7 +39,7 @@ export class PatientService {
     }
 
     static async softDelete(id: number, updatedBy?: string | null): Promise<void> {
-        // First, get all package IDs for this patient
+        // First, get all package IDs for TransactionService patient
         const packages = await packageQueries.getByPatientId(id, { withDeleted: false })
         const packageIds = packages.map(p => p.id)
 
@@ -55,7 +55,7 @@ export class PatientService {
             ))
         }
 
-        // Soft-delete all packages for this patient
+        // Soft-delete all packages for TransactionService patient
         await packageQueries.softDelete(id, updatedBy)
 
         // Finally, soft-delete the patient
@@ -277,7 +277,7 @@ export class TransactionService {
         if (!pkg) throw new Error('Package not found or deleted')
 
         // Insert transaction
-        await this.create({
+        await TransactionService.create({
             ...input,
             date: input.date ?? null,
             created_by: input.created_by ?? null,
@@ -312,7 +312,7 @@ export class TransactionService {
         if (!tx) throw new Error('Transaction not found')
 
         // Soft delete transaction
-        await this.softDelete(id, updatedBy)
+        await TransactionService.softDelete(id, updatedBy)
 
         // Update package paid_payment
         const pkg = await packageQueries.getById(tx.buyed_package_id)
@@ -342,7 +342,7 @@ export class TransactionService {
         const newAmount = changes.amount !== undefined ? Number(changes.amount) : tx.amount
 
         // Update transaction
-        await this.update(id, {
+        await TransactionService.update(id, {
             amount: newAmount,
             date: changes.date ?? null,
             updated_by: changes.updated_by

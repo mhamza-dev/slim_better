@@ -15,7 +15,7 @@ import type { AuthUser } from '../context/AuthContextTypes'
 import { exportPackagesToExcelWithLogo } from '../lib/excelExport'
 import { generateSessionsClientSide } from '../services/sessionsService'
 import { fetchSessionsByPackage as fetchSessionsByPackageThunk, rescheduleSession as rescheduleSessionThunk, completeSession as completeSessionThunk } from '../store/sessionsSlice'
-import { fetchTransactionsByPackage as fetchTransactionsByPackageThunk, addTransaction as addTransactionThunk, deleteTransaction as deleteTransactionThunk } from '../store/transactionsSlice'
+import { fetchTransactionsByPackage as fetchTransactionsByPackageThunk, addTransaction as addTransactionThunk, deleteTransaction as deleteTransactionThunk, selectTransactionsByPackageId, selectLoadingByPackageId } from '../store/transactionsSlice'
 import { FormBuilder, type FormFieldConfig } from '../components/ui/Form'
 import { createPackage } from '../services/packagesService'
 import { toISODate } from '../utils/date'
@@ -233,8 +233,8 @@ function SessionsList({ packageId, patientId }: { packageId: number; patientId: 
 
 function TransactionsList({ packageId, patientId }: { packageId: number; patientId: number }) {
     const dispatch = useAppDispatch()
-    const rows = useAppSelector((s) => (s as any).transactions.itemsByPackageId[packageId] || []) as Array<{ id: number; amount: number; date: string | null; creator_email?: string | null; updated_by_email?: string | null; created_at?: string | null; updated_at?: string | null }>
-    const loading = useAppSelector((s) => (s as any).transactions.loadingByPackageId[packageId]) as boolean | undefined
+    const rows = useAppSelector((state) => selectTransactionsByPackageId(state, packageId)) as Array<{ id: number; amount: number; date: string | null; creator_email?: string | null; updated_by_email?: string | null; created_at?: string | null; updated_at?: string | null }>
+    const loading = useAppSelector((state) => selectLoadingByPackageId(state, packageId)) as boolean | undefined
     const [adding, setAdding] = useState(false)
     const [open, setOpen] = useState(false)
     const [editingTxId, setEditingTxId] = useState<number | null>(null)

@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice, createSelector } from '@reduxjs/toolkit'
 import { createAppAsyncThunk } from './createAppAsyncThunk'
 import type { Transaction } from '../services/transactionsService'
 import { fetchTransactionsByPackage as svcFetchTransactionsByPackage, addPaymentAndUpdatePackage as svcAddPaymentAndUpdatePackage, deletePaymentAndUpdatePackage as svcDeletePaymentAndUpdatePackage, updatePaymentAndUpdatePackage as svcUpdatePaymentAndUpdatePackage } from '../services/transactionsService'
@@ -115,4 +115,20 @@ const slice = createSlice({
 
 export default slice.reducer
 
+// Memoized selectors
+const selectTransactionsState = (state: { transactions: State }) => state.transactions
 
+export const selectTransactionsByPackageId = createSelector(
+    [selectTransactionsState, (_: any, packageId: number) => packageId],
+    (transactions, packageId) => transactions.itemsByPackageId[packageId] || []
+)
+
+export const selectLoadingByPackageId = createSelector(
+    [selectTransactionsState, (_: any, packageId: number) => packageId],
+    (transactions, packageId) => transactions.loadingByPackageId[packageId] || false
+)
+
+export const selectErrorByPackageId = createSelector(
+    [selectTransactionsState, (_: any, packageId: number) => packageId],
+    (transactions, packageId) => transactions.errorByPackageId[packageId] || null
+)
