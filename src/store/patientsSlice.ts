@@ -51,11 +51,10 @@ const patientsSlice = createSlice({
             .addCase(fetchPatients.rejected, (state, action) => {
                 state.loading = false
                 state.error = action.error.message || 'Failed to load patients'
+                console.error('Failed to fetch patients:', action.error)
             })
     }
 })
 
 export const { setPatients } = patientsSlice.actions
 export default patientsSlice.reducer
-
-

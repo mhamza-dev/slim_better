@@ -31,6 +31,7 @@ export function PatientEditModal({ patientId, isOpen, onClose, onSuccess }: Pati
                 if (error) throw error
                 setForm(data)
             } catch (err) {
+                console.error('Failed to load patient:', err)
                 setError(err instanceof Error ? err.message : 'Failed to load patient')
             }
         }
@@ -76,6 +77,7 @@ export function PatientEditModal({ patientId, isOpen, onClose, onSuccess }: Pati
             onSuccess?.()
             onClose()
         } catch (err: unknown) {
+            console.error('Failed to update patient:', err)
             setError(err instanceof Error ? err.message : 'An error occurred')
         } finally {
             setLoading(false)

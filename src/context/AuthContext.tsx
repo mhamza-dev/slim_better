@@ -16,8 +16,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false)
         })
 
-        const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-            console.log('Auth state change:', event, session?.user?.email)
+        const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
             const sessionUser = session?.user
             setUser(sessionUser ? { id: sessionUser.id, email: sessionUser.email ?? null } : null)
         })
@@ -48,7 +47,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                 if (!session) {
                     // No active session, just clear local state
-                    console.log('No active session found, clearing local state')
                     setUser(null)
                     return
                 }
@@ -68,7 +66,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                 // Don't throw the error if it's just a missing session
                 if (error instanceof Error && error.message.includes('Auth session missing')) {
-                    console.log('Session already expired, clearing local state')
                     return
                 }
 

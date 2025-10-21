@@ -79,6 +79,7 @@ const slice = createSlice({
                 const id = action.meta.arg
                 state.loadingByPackageId[id] = false
                 state.errorByPackageId[id] = action.error.message || 'Failed to load sessions'
+                console.error('Failed to fetch sessions:', action.error)
             })
             .addCase(rescheduleSession.pending, (state, action) => {
                 const id = action.meta.arg.packageId
@@ -93,6 +94,7 @@ const slice = createSlice({
                 const id = action.meta.arg.packageId
                 state.loadingByPackageId[id] = false
                 state.errorByPackageId[id] = action.error.message || 'Failed to reschedule session'
+                console.error('Failed to reschedule session:', action.error)
             })
             .addCase(generateSessions.pending, (state, action) => {
                 const id = action.meta.arg.buyedPackageId
@@ -107,6 +109,7 @@ const slice = createSlice({
                 const id = action.meta.arg.buyedPackageId
                 state.loadingByPackageId[id] = false
                 state.errorByPackageId[id] = action.error.message || 'Failed to generate sessions'
+                console.error('Failed to generate sessions:', action.error)
             })
             .addCase(completeSession.pending, (state, action) => {
                 const id = action.meta.arg.packageId
@@ -121,6 +124,7 @@ const slice = createSlice({
                 const id = action.meta.arg.packageId
                 state.loadingByPackageId[id] = false
                 state.errorByPackageId[id] = action.error.message || 'Failed to complete session'
+                console.error('Failed to complete session:', action.error)
             })
     }
 })

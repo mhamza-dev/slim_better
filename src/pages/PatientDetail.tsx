@@ -163,7 +163,10 @@ function SessionsList({ packageId, patientId }: { packageId: number; patientId: 
         if (d.getDay() === 0) d.setDate(d.getDate() + 1)
         const newISO = toISODate(d)
         const result = await dispatch(rescheduleSessionThunk({ sessionId: id, packageId, newDateISO: newISO, updated_by: user?.id || null }))
-        if (!rescheduleSessionThunk.rejected.match(result)) {
+        if (rescheduleSessionThunk.rejected.match(result)) {
+            console.error('Failed to reschedule session:', result.error)
+            alert(`Failed to reschedule session: ${result.error.message || 'Unknown error'}`)
+        } else {
             await dispatch(fetchSessionsByPackageThunk(packageId))
             await dispatch(fetchPackagesByPatient(patientId))
             setEditingSessionId(null)
@@ -217,6 +220,7 @@ function SessionsList({ packageId, patientId }: { packageId: number; patientId: 
                                                     <button className="px-2.5 py-1 text-xs bg-green-50 border border-green-200 rounded-lg hover:bg-green-100" onClick={async () => {
                                                         const result = await dispatch(completeSessionThunk({ sessionId: s.id, packageId, updated_by: user?.id || null }))
                                                         if (completeSessionThunk.rejected.match(result)) {
+                                                            console.error('Failed to complete session:', result.error)
                                                             alert(result.error.message || 'Failed to complete')
                                                         } else {
                                                             await dispatch(fetchSessionsByPackageThunk(packageId))
@@ -449,15 +453,10 @@ function BuyedPackageForm({ patientId, items, user, patientName }: { patientId: 
             return
         }
 
-        console.log('Attempting to delete package:', packageId, 'for patient:', patientId)
-
         try {
             const result = await dispatch(deletePackage({ id: packageId, patientId: Number(patientId), updatedBy: user?.id || null }))
 
-            console.log('Delete result:', result)
-
             if (deletePackage.fulfilled.match(result)) {
-                console.log('Delete successful, refreshing packages')
                 // Refresh the packages list
                 dispatch(fetchPackagesByPatient(Number(patientId)))
             } else if (deletePackage.rejected.match(result)) {
@@ -573,30 +572,33 @@ function BuyedPackageForm({ patientId, items, user, patientName }: { patientId: 
                     ] as FormFieldConfig[]}
                     onSubmit={async (values) => {
                         setLoading(true)
-                        const payload = {
-                            no_of_sessions: Number(values.no_of_sessions as number),
-                            total_payment: Number(values.total_payment as number),
-                            advance_payment: Number(values.advance_payment as number),
-                            gap_between_sessions: Number(values.gap_between_sessions as number),
-                            start_date: values.start_date as string,
-                            created_by: values.created_by as string,
-                            updated_by: null,
-                            patient_id: patientId,
+                        try {
+                            const payload = {
+                                no_of_sessions: Number(values.no_of_sessions as number),
+                                total_payment: Number(values.total_payment as number),
+                                advance_payment: Number(values.advance_payment as number),
+                                gap_between_sessions: Number(values.gap_between_sessions as number),
+                                start_date: values.start_date as string,
+                                created_by: values.created_by as string,
+                                updated_by: null,
+                                patient_id: patientId,
+                            }
+                            const inserted = await createPackage(payload)
+                            await generateSessionsClientSide({
+                                buyedPackageId: inserted.id,
+                                startDateISO: values.start_date as string,
+                                totalSessions: Number(values.no_of_sessions as number),
+                                gapDays: Number(values.gap_between_sessions as number),
+                                completedCount: 0
+                            })
+                            setLoading(false)
+                            setFormOpen(false)
+                            await dispatch(fetchPackagesByPatient(patientId))
+                        } catch (error) {
+                            console.error('Failed to create package:', error)
+                            alert(`Failed to create package: ${error instanceof Error ? error.message : 'Unknown error'}`)
+                            setLoading(false)
                         }
-                        console.log('Payload:', payload)
-                        const inserted = await createPackage(payload)
-                        console.log('Inserted:', inserted)
-                        const generated = await generateSessionsClientSide({
-                            buyedPackageId: inserted.id,
-                            startDateISO: values.start_date as string,
-                            totalSessions: Number(values.no_of_sessions as number),
-                            gapDays: Number(values.gap_between_sessions as number),
-                            completedCount: 0
-                        })
-                        console.log('Generated sessions:', generated)
-                        setLoading(false)
-                        setFormOpen(false)
-                        await dispatch(fetchPackagesByPatient(patientId))
                     }}
                     submitLabel="Save package"
                     cancelLabel="Cancel"

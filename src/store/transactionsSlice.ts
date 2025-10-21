@@ -67,6 +67,7 @@ const slice = createSlice({
                 const id = action.meta.arg
                 state.loadingByPackageId[id] = false
                 state.errorByPackageId[id] = action.error.message || 'Failed to load transactions'
+                console.error('Failed to fetch transactions:', action.error)
             })
             .addCase(addTransaction.pending, (state, action) => {
                 const id = action.meta.arg.buyed_package_id
@@ -81,6 +82,7 @@ const slice = createSlice({
                 const id = action.meta.arg.buyed_package_id
                 state.loadingByPackageId[id] = false
                 state.errorByPackageId[id] = action.error.message || 'Failed to add transaction'
+                console.error('Failed to add transaction:', action.error)
             })
             .addCase(deleteTransaction.pending, (state, action) => {
                 const id = action.meta.arg.buyed_package_id
@@ -95,6 +97,7 @@ const slice = createSlice({
                 const id = action.meta.arg.buyed_package_id
                 state.loadingByPackageId[id] = false
                 state.errorByPackageId[id] = action.error.message || 'Failed to delete transaction'
+                console.error('Failed to delete transaction:', action.error)
             })
             .addCase(updateTransaction.pending, (state, action) => {
                 const id = action.meta.arg.buyed_package_id
@@ -109,6 +112,7 @@ const slice = createSlice({
                 const id = action.meta.arg.buyed_package_id
                 state.loadingByPackageId[id] = false
                 state.errorByPackageId[id] = action.error.message || 'Failed to update transaction'
+                console.error('Failed to update transaction:', action.error)
             })
     }
 })

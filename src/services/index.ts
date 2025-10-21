@@ -277,55 +277,65 @@ export class TransactionService {
         date?: string | null
         created_by?: string | null
     }): Promise<void> {
-        // Ensure package is not deleted
-        const pkg = await packageQueries.getById(input.buyed_package_id, { withDeleted: false })
-        if (!pkg) throw new Error('Package not found or deleted')
+        try {
+            // Ensure package is not deleted
+            const pkg = await packageQueries.getById(input.buyed_package_id, { withDeleted: false })
+            if (!pkg) throw new Error('Package not found or deleted')
 
-        // Insert transaction
-        await TransactionService.create({
-            ...input,
-            date: input.date ?? null,
-            created_by: input.created_by ?? null,
-            updated_by: null
-        })
+            // Insert transaction
+            await TransactionService.create({
+                ...input,
+                date: input.date ?? null,
+                created_by: input.created_by ?? null,
+                updated_by: null
+            })
 
-        // Update package paid_payment
-        const current = Number(pkg.paid_payment ?? 0)
-        const total = Number(pkg.total_payment ?? 0)
-        const advance = Number(pkg.advance_payment ?? 0)
-        const maxAllowedPaid = Math.max(0, total - advance)
-        const requested = Number(input.amount)
+            // Update package paid_payment
+            const current = Number(pkg.paid_payment ?? 0)
+            const total = Number(pkg.total_payment ?? 0)
+            const advance = Number(pkg.advance_payment ?? 0)
+            const maxAllowedPaid = Math.max(0, total - advance)
+            const requested = Number(input.amount)
 
-        if (current + requested > maxAllowedPaid) {
-            throw new Error(`Payment exceeds remaining amount. Remaining: ${Math.max(0, maxAllowedPaid - current)}`)
+            if (current + requested > maxAllowedPaid) {
+                throw new Error(`Payment exceeds remaining amount. Remaining: ${Math.max(0, maxAllowedPaid - current)}`)
+            }
+
+            const next = current + requested
+            await packageQueries.update(input.buyed_package_id, { paid_payment: next })
+        } catch (error) {
+            console.error('Failed to add payment and update package:', error)
+            throw error
         }
-
-        const next = current + requested
-        await packageQueries.update(input.buyed_package_id, { paid_payment: next })
     }
 
     static async deletePaymentAndUpdatePackage(id: number, updatedBy?: string | null): Promise<void> {
-        // Get transaction details
-        const { data: tx, error: readErr } = await supabase
-            .from('transactions_history')
-            .select('id,buyed_package_id,amount')
-            .eq('id', id)
-            .eq('is_deleted', false)
-            .single()
+        try {
+            // Get transaction details
+            const { data: tx, error: readErr } = await supabase
+                .from('transactions_history')
+                .select('id,buyed_package_id,amount')
+                .eq('id', id)
+                .eq('is_deleted', false)
+                .single()
 
-        if (readErr) throw readErr
-        if (!tx) throw new Error('Transaction not found')
+            if (readErr) throw readErr
+            if (!tx) throw new Error('Transaction not found')
 
-        // Soft delete transaction
-        await TransactionService.softDelete(id, updatedBy)
+            // Soft delete transaction
+            await TransactionService.softDelete(id, updatedBy)
 
-        // Update package paid_payment
-        const pkg = await packageQueries.getById(tx.buyed_package_id)
-        if (!pkg) throw new Error('Package not found')
+            // Update package paid_payment
+            const pkg = await packageQueries.getById(tx.buyed_package_id)
+            if (!pkg) throw new Error('Package not found')
 
-        const current = Number(pkg.paid_payment ?? 0)
-        const next = Math.max(current - Number(tx.amount), 0)
-        await packageQueries.update(tx.buyed_package_id, { paid_payment: next })
+            const current = Number(pkg.paid_payment ?? 0)
+            const next = Math.max(current - Number(tx.amount), 0)
+            await packageQueries.update(tx.buyed_package_id, { paid_payment: next })
+        } catch (error) {
+            console.error('Failed to delete payment and update package:', error)
+            throw error
+        }
     }
 
     static async updatePaymentAndUpdatePackage(id: number, changes: {
@@ -333,44 +343,49 @@ export class TransactionService {
         date?: string | null
         updated_by?: string | null
     }): Promise<void> {
-        // Get existing transaction
-        const { data: tx, error: readErr } = await supabase
-            .from('transactions_history')
-            .select('id,buyed_package_id,amount')
-            .eq('id', id)
-            .eq('is_deleted', false)
-            .single()
+        try {
+            // Get existing transaction
+            const { data: tx, error: readErr } = await supabase
+                .from('transactions_history')
+                .select('id,buyed_package_id,amount')
+                .eq('id', id)
+                .eq('is_deleted', false)
+                .single()
 
-        if (readErr) throw readErr
-        if (!tx) throw new Error('Transaction not found')
+            if (readErr) throw readErr
+            if (!tx) throw new Error('Transaction not found')
 
-        const newAmount = changes.amount !== undefined ? Number(changes.amount) : tx.amount
+            const newAmount = changes.amount !== undefined ? Number(changes.amount) : tx.amount
 
-        // Update transaction
-        await TransactionService.update(id, {
-            amount: newAmount,
-            date: changes.date ?? null,
-            updated_by: changes.updated_by
-        })
+            // Update transaction
+            await TransactionService.update(id, {
+                amount: newAmount,
+                date: changes.date ?? null,
+                updated_by: changes.updated_by
+            })
 
-        // Update package if amount changed
-        const delta = Number(newAmount) - Number(tx.amount)
-        if (delta !== 0) {
-            const pkg = await packageQueries.getById(tx.buyed_package_id)
-            if (!pkg) throw new Error('Package not found')
+            // Update package if amount changed
+            const delta = Number(newAmount) - Number(tx.amount)
+            if (delta !== 0) {
+                const pkg = await packageQueries.getById(tx.buyed_package_id)
+                if (!pkg) throw new Error('Package not found')
 
-            const current = Number(pkg.paid_payment ?? 0)
-            const total = Number(pkg.total_payment ?? 0)
-            const advance = Number(pkg.advance_payment ?? 0)
-            const maxAllowedPaid = Math.max(0, total - advance)
-            const tentative = current + delta
+                const current = Number(pkg.paid_payment ?? 0)
+                const total = Number(pkg.total_payment ?? 0)
+                const advance = Number(pkg.advance_payment ?? 0)
+                const maxAllowedPaid = Math.max(0, total - advance)
+                const tentative = current + delta
 
-            if (tentative > maxAllowedPaid) {
-                throw new Error(`Payment exceeds remaining amount. Remaining: ${Math.max(0, maxAllowedPaid - current)}`)
+                if (tentative > maxAllowedPaid) {
+                    throw new Error(`Payment exceeds remaining amount. Remaining: ${Math.max(0, maxAllowedPaid - current)}`)
+                }
+
+                const next = Math.max(0, tentative)
+                await packageQueries.update(tx.buyed_package_id, { paid_payment: next })
             }
-
-            const next = Math.max(0, tentative)
-            await packageQueries.update(tx.buyed_package_id, { paid_payment: next })
+        } catch (error) {
+            console.error('Failed to update payment and update package:', error)
+            throw error
         }
     }
 }

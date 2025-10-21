@@ -24,5 +24,3 @@ export default function Modal({ open, onClose, children, title }: { open: boolea
         </div>
     )
 }
-
-

@@ -19,5 +19,3 @@ export function CardTitle({ className, ...props }: HTMLAttributes<HTMLDivElement
 export function CardContent({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
     return <div className={clsx('px-4 pb-4', className)} {...props} />
 }
-
-

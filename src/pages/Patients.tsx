@@ -125,9 +125,9 @@ export default function Patients() {
             </div>
             <Card className="overflow-hidden">
                 <CardContent className="p-0">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto max-h-[80vh] overflow-y-auto">
                         <table className="w-full min-w-[700px]">
-                            <thead>
+                            <thead className="sticky top-0 z-10 shadow-sm">
                                 <tr className="bg-[#f1f6ff] text-primaryDark">
                                     <th className="text-left p-3 text-sm font-semibold w-[12%]">Name</th>
                                     <th className="text-left p-3 text-sm font-semibold w-[10%]">Phone</th>

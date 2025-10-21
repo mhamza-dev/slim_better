@@ -37,6 +37,7 @@ export function PackageEditModal({ packageId, patientId, isOpen, onClose }: Pack
                 if (error) throw error
                 setPackageData(data)
             } catch (err) {
+                console.error('Failed to load package:', err)
                 setError(err instanceof Error ? err.message : 'Failed to load package')
             }
         }
@@ -116,11 +117,6 @@ export function PackageEditModal({ packageId, patientId, isOpen, onClose }: Pack
                                     { type: 'number', name: 'advance_payment', label: 'Advance Payment *', min: 0 },
                                 ] as FormFieldConfig[]}
                                 onSubmit={async (values) => {
-                                    console.log('Form Values:', values)
-                                    console.log('Package ID:', packageId)
-                                    console.log('Patient ID:', patientId)
-                                    console.log('User ID:', user?.id)
-
                                     if (!packageId) {
                                         setError('Package ID is missing')
                                         return
@@ -136,10 +132,8 @@ export function PackageEditModal({ packageId, patientId, isOpen, onClose }: Pack
                                             gap_between_sessions: Number(values.gap_between_sessions as number),
                                             updated_by: user?.id || null,
                                         }
-                                        console.log('Update Data:', updateData)
 
                                         const result = await dispatch(updatePackage({ id: packageId, patient_id: patientId, data: updateData }))
-                                        console.log('Update Result:', result)
 
                                         if (updatePackage.fulfilled.match(result)) {
                                             await dispatch(fetchPackagesByPatient(patientId))

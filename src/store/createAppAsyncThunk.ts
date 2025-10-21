@@ -30,5 +30,3 @@ export function createAppAsyncThunk<Returned, ThunkArg = void>(
         }
     )
 }
-
-
