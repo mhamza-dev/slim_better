@@ -1,7 +1,19 @@
+// Redux Toolkit imports
 import { createSlice } from '@reduxjs/toolkit'
+
+// Internal imports - Types
 import type { Session } from '../types/db'
+
+// Internal imports - Store
 import { createAppAsyncThunk } from './createAppAsyncThunk'
-import { fetchSessionsByPackage as svcFetchSessionsByPackage, rescheduleSession as svcRescheduleSession, generateSessionsClientSide as svcGenerateSessions, completeSession as svcCompleteSession } from '../services/sessionsService'
+
+// Internal imports - Services
+import {
+    fetchSessionsByPackage as svcFetchSessionsByPackage,
+    rescheduleSession as svcRescheduleSession,
+    generateSessionsClientSide as svcGenerateSessions,
+    completeSession as svcCompleteSession
+} from '../services/sessionsService'
 
 type State = {
     itemsByPackageId: Record<number, Session[]>

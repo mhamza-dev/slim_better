@@ -1,6 +1,13 @@
+// Redux Toolkit imports
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
+
+// Internal imports - Types
 import type { Patient } from '../types/db'
+
+// Internal imports - Store
 import { createAppAsyncThunk } from './createAppAsyncThunk'
+
+// Internal imports - Services
 import { fetchPatientsList } from '../services/patientsService'
 
 type PatientsState = {

@@ -1,5 +1,8 @@
-import { TransactionService } from './index'
+// Internal imports - Types
 import type { Transaction } from '../types/db'
+
+// Internal imports - Services
+import { TransactionService } from './index'
 
 // Re-export the new service methods for backward compatibility
 export const fetchTransactionsByPackage = TransactionService.getByPackageId
@@ -10,5 +13,3 @@ export const updatePaymentAndUpdatePackage = TransactionService.updatePaymentAnd
 
 // Re-export types
 export type { Transaction }
-
-

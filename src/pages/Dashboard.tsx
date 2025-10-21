@@ -1,18 +1,28 @@
+// React imports
 import { useEffect, useMemo, useState } from 'react'
-//
+
+// Third-party imports
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar, Legend } from 'recharts'
+import { Download } from 'lucide-react'
+
+// Internal imports - Types
+import type { DashboardSessionRow } from '../services/sessionsService'
+
+// Internal imports - Redux
+import { useAppDispatch, useAppSelector } from '../store/hooks'
+import { fetchPatients } from '../store/patientsSlice'
+
+// Internal imports - Components
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
-import { Download } from 'lucide-react'
-import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { fetchPatients } from '../store/patientsSlice'
-import { exportDashboardToExcelWithLogo } from '../lib/excelExport'
-import { fetchDashboardPackages } from '../services/packagesService'
-import { fetchPlannedSessionsByDateRange, type DashboardSessionRow } from '../services/sessionsService'
-//
 import { DateRangeInput } from '../components/ui/DateRange'
 import { PackageDetailsModal } from '../components/PackageDetailsModal'
+
+// Internal imports - Services & Utils
+import { exportDashboardToExcelWithLogo } from '../lib/excelExport'
+import { fetchDashboardPackages } from '../services/packagesService'
+import { fetchPlannedSessionsByDateRange } from '../services/sessionsService'
 
 type PackageRow = {
     id: number

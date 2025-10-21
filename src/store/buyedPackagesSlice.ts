@@ -1,8 +1,20 @@
+// Redux Toolkit imports
 import { createSlice } from '@reduxjs/toolkit'
-// supabase is accessed via services; no direct use here
-import { fetchPackagesByPatient as svcFetchPackagesByPatient, updatePackageById, deletePackageById, createPackage, type CreatePackageInput } from '../services/packagesService'
+
+// Internal imports - Types
 import type { BuyedPackageWithCreator, BuyedPackage } from '../types/db'
+
+// Internal imports - Store
 import { createAppAsyncThunk } from './createAppAsyncThunk'
+
+// Internal imports - Services
+import {
+    fetchPackagesByPatient as svcFetchPackagesByPatient,
+    updatePackageById,
+    deletePackageById,
+    createPackage,
+    type CreatePackageInput
+} from '../services/packagesService'
 
 type State = {
     itemsByPatientId: Record<number, BuyedPackageWithCreator[]>

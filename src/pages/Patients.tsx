@@ -1,21 +1,35 @@
+// React imports
 import { useEffect, useMemo, useState } from 'react'
-//
-import { createPatient, softDeletePatient } from '../services/patientsService'
+
+// React Router imports
+import { useNavigate } from 'react-router-dom'
+
+// Third-party imports
+import * as Yup from 'yup'
+import { Plus, Search, Download, Edit, Trash2 } from 'lucide-react'
+
+// Internal imports - Types
+import type { Patient } from '../types/db'
+import type { FormFieldConfig } from '../components/ui/Form'
+
+// Internal imports - Redux
+import { useAppDispatch, useAppSelector } from '../store/hooks'
+import { fetchPatients } from '../store/patientsSlice'
+
+// Internal imports - Components
 import Modal from '../components/Modal'
 import { PatientEditModal } from '../components/PatientEditModal'
 import { Button } from '../components/ui/Button'
-import { Plus, Search, Download, Edit, Trash2 } from 'lucide-react'
 import { Card, CardContent } from '../components/ui/Card'
 import { WhatsAppButton } from '../components/ui/WhatsAppButton'
-import type { Patient } from '../types/db'
-import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { fetchPatients } from '../store/patientsSlice'
-import { exportPatientsToExcelWithLogo } from '../lib/excelExport'
+import { FormBuilder } from '../components/ui/Form'
 
-import * as Yup from 'yup'
+// Internal imports - Hooks
 import { useAuth } from '../hooks/useAuth'
-import { FormBuilder, type FormFieldConfig } from '../components/ui/Form'
-import { useNavigate } from 'react-router-dom'
+
+// Internal imports - Services & Utils
+import { createPatient, softDeletePatient } from '../services/patientsService'
+import { exportPatientsToExcelWithLogo } from '../lib/excelExport'
 
 // Removed calculateAge function since age is now stored directly
 

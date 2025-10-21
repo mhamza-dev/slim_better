@@ -1,5 +1,10 @@
+// Redux Toolkit imports
 import { createSlice } from '@reduxjs/toolkit'
+
+// Internal imports - Store
 import { createAppAsyncThunk } from './createAppAsyncThunk'
+
+// Internal imports - Services
 import { fetchPackageBySessionId, type DashboardPackageRow } from '../services/packagesService'
 
 type State = {

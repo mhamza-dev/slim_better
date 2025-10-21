@@ -1,6 +1,11 @@
+// React Router imports
 import { useNavigate } from 'react-router-dom'
-import { Button } from '../components/ui/Button'
+
+// Third-party imports
 import { Home, ArrowLeft } from 'lucide-react'
+
+// Internal imports - Components
+import { Button } from '../components/ui/Button'
 
 export default function NotFound() {
     const navigate = useNavigate()
@@ -19,20 +24,20 @@ export default function NotFound() {
                     Page Not Found
                 </h1>
                 <p className="text-gray-600 mb-8 leading-relaxed">
-                    Sorry, the page you're looking for doesn't exist or has been moved. 
+                    Sorry, the page you're looking for doesn't exist or has been moved.
                     Let's get you back on track.
                 </p>
 
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button 
+                    <Button
                         onClick={() => navigate('/dashboard')}
                         className="gap-2"
                     >
                         <Home size={18} />
                         Go to Dashboard
                     </Button>
-                    <Button 
+                    <Button
                         variant="secondary"
                         onClick={() => navigate(-1)}
                         className="gap-2"

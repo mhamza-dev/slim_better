@@ -1,6 +1,11 @@
+// React Router imports
 import { useRouteError, useNavigate } from 'react-router-dom'
-import { Button } from '../components/ui/Button'
+
+// Third-party imports
 import { AlertTriangle, Home, ArrowLeft } from 'lucide-react'
+
+// Internal imports - Components
+import { Button } from '../components/ui/Button'
 
 export default function ErrorPage() {
     const error = useRouteError() as any
@@ -24,7 +29,7 @@ export default function ErrorPage() {
                     {isNotFound ? 'Page Not Found' : 'Something went wrong'}
                 </h1>
                 <p className="text-gray-600 mb-6 leading-relaxed">
-                    {isNotFound 
+                    {isNotFound
                         ? "Sorry, the page you're looking for doesn't exist or has been moved."
                         : "We're sorry, but something unexpected happened. Don't worry, our team has been notified."
                     }
@@ -45,14 +50,14 @@ export default function ErrorPage() {
 
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button 
+                    <Button
                         onClick={() => navigate('/dashboard')}
                         className="gap-2"
                     >
                         <Home size={18} />
                         Go to Dashboard
                     </Button>
-                    <Button 
+                    <Button
                         variant="secondary"
                         onClick={() => navigate(-1)}
                         className="gap-2"
@@ -66,7 +71,7 @@ export default function ErrorPage() {
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                     <h3 className="font-semibold text-blue-800 mb-2">Need Help?</h3>
                     <p className="text-sm text-blue-700">
-                        {isNotFound 
+                        {isNotFound
                             ? "If you believe this is an error, please check the URL or contact support."
                             : "If this problem persists, please contact support or try refreshing the page."
                         }

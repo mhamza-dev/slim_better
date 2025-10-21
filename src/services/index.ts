@@ -1,10 +1,4 @@
-import {
-    patientQueries,
-    packageQueries,
-    sessionQueries,
-    transactionQueries,
-    enrichWithUserEmails
-} from '../lib/supabase/queries'
+// Internal imports - Types
 import type {
     Patient,
     BuyedPackage,
@@ -14,6 +8,17 @@ import type {
     Transaction,
     QueryOptions
 } from '../types/db'
+
+// Internal imports - Database Queries
+import {
+    patientQueries,
+    packageQueries,
+    sessionQueries,
+    transactionQueries,
+    enrichWithUserEmails
+} from '../lib/supabase/queries'
+
+// Internal imports - Utils
 import { shiftSundayToMonday } from '../utils/date'
 
 // Patient Service

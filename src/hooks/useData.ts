@@ -1,11 +1,18 @@
-import { useCallback } from 'react'
+// React imports
+import { useState, useEffect, useCallback } from 'react'
+
+// Internal imports - Types
+import type { Patient, BuyedPackage, Session, QueryOptions } from '../types/db'
+
+// Internal imports - Store
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { fetchPatients } from '../store/patientsSlice'
 import { fetchPackagesByPatient, addPackage, updatePackage, deletePackage } from '../store/buyedPackagesSlice'
 import { fetchSessionsByPackage, rescheduleSession, generateSessions, completeSession } from '../store/sessionsSlice'
 import { fetchTransactionsByPackage, addTransaction, deleteTransaction, updateTransaction } from '../store/transactionsSlice'
+
+// Internal imports - Services
 import { PatientService, PackageService, SessionService } from '../services'
-import type { Patient, BuyedPackage, Session, QueryOptions } from '../types/db'
 
 // Patients hooks
 export function usePatients(_options?: QueryOptions) {
@@ -291,6 +298,3 @@ export function useSessionsByDateRange(startDate: string, endDate?: string, _opt
         refetch
     }
 }
-
-// Import React hooks
-import { useState, useEffect } from 'react'

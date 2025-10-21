@@ -1,11 +1,25 @@
+// React imports
 import { useEffect, useState } from 'react'
+
+// React Router imports
 import { useNavigate, useParams } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
+
+// Third-party imports
+import * as Yup from 'yup'
+
+// Internal imports - Types
+import type { FormFieldConfig } from '../components/ui/Form'
+
+// Internal imports - Components
 import { Card, CardContent, CardHeader } from '../components/ui/Card'
-import { FormBuilder, type FormFieldConfig } from '../components/ui/Form'
+import { FormBuilder } from '../components/ui/Form'
+
+// Internal imports - Hooks
+import { useAuth } from '../hooks/useAuth'
+
+// Internal imports - Services & Utils
 import { createPatient, updatePatient } from '../services/patientsService'
 import { supabase } from '../lib/supabaseClient'
-import * as Yup from 'yup'
 
 export default function PatientForm() {
     const navigate = useNavigate()

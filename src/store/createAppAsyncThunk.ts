@@ -1,4 +1,7 @@
+// Redux Toolkit imports
 import { createAsyncThunk } from '@reduxjs/toolkit'
+
+// Internal imports - Types
 import type { RootState } from './index'
 
 // Helper to create typed thunks with consistent rejectWithValue payloads

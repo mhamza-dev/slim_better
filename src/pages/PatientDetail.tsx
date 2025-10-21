@@ -1,22 +1,46 @@
+// React imports
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { supabase } from '../lib/supabaseClient'
+
+// Third-party imports
+import * as Yup from 'yup'
+import { Edit, Trash2, PackagePlus, Download, Search } from 'lucide-react'
+
+// Internal imports - Types
 import type { Patient, BuyedPackageWithCreator } from '../types/db'
+import type { AuthUser } from '../context/AuthContextTypes'
+import type { FormFieldConfig } from '../components/ui/Form'
+
+// Internal imports - Redux
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { fetchPackagesByPatient, deletePackage } from '../store/buyedPackagesSlice'
+import {
+    fetchSessionsByPackage as fetchSessionsByPackageThunk,
+    rescheduleSession as rescheduleSessionThunk,
+    completeSession as completeSessionThunk
+} from '../store/sessionsSlice'
+import {
+    fetchTransactionsByPackage as fetchTransactionsByPackageThunk,
+    addTransaction as addTransactionThunk,
+    deleteTransaction as deleteTransactionThunk,
+    selectTransactionsByPackageId,
+    selectLoadingByPackageId
+} from '../store/transactionsSlice'
+
+// Internal imports - Components
 import Modal from '../components/Modal'
 import { PackageEditModal } from '../components/PackageEditModal'
 import { Button } from '../components/ui/Button'
 import { Card, CardContent, CardHeader } from '../components/ui/Card'
-import { Edit, Trash2, PackagePlus, Download, Search } from 'lucide-react'
-import * as Yup from 'yup'
+import { FormBuilder } from '../components/ui/Form'
+
+// Internal imports - Hooks & Context
 import { useAuth } from '../hooks/useAuth'
-import type { AuthUser } from '../context/AuthContextTypes'
+
+// Internal imports - Services & Utils
+import { supabase } from '../lib/supabaseClient'
 import { exportPackagesToExcelWithLogo } from '../lib/excelExport'
 import { generateSessionsClientSide } from '../services/sessionsService'
-import { fetchSessionsByPackage as fetchSessionsByPackageThunk, rescheduleSession as rescheduleSessionThunk, completeSession as completeSessionThunk } from '../store/sessionsSlice'
-import { fetchTransactionsByPackage as fetchTransactionsByPackageThunk, addTransaction as addTransactionThunk, deleteTransaction as deleteTransactionThunk, selectTransactionsByPackageId, selectLoadingByPackageId } from '../store/transactionsSlice'
-import { FormBuilder, type FormFieldConfig } from '../components/ui/Form'
 import { createPackage } from '../services/packagesService'
 import { toISODate } from '../utils/date'
 

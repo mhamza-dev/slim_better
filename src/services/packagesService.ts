@@ -1,5 +1,8 @@
-import { PackageService } from './index'
+// Internal imports - Types
 import type { BuyedPackageWithCreatorAndPatient, BuyedPackage } from '../types/db'
+
+// Internal imports - Services
+import { PackageService } from './index'
 
 // Re-export the new service methods for backward compatibility
 export const createPackage = PackageService.create
@@ -14,5 +17,3 @@ export type CreatePackageInput = Omit<BuyedPackage, 'id' | 'created_at' | 'updat
 export type DashboardPackageRow = Pick<BuyedPackageWithCreatorAndPatient,
     'id' | 'total_payment' | 'paid_payment' | 'advance_payment' | 'no_of_sessions' | 'gap_between_sessions' | 'start_date' | 'patients'> &
 { sessions_completed: number; next_session_date: string | null }
-
-

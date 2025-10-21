@@ -1,15 +1,24 @@
+// React Router imports
 import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider } from 'react-router-dom'
+
+// Internal imports - Context
 import { AuthProvider } from './context/AuthContext'
+
+// Internal imports - Components
 import { ToastProvider } from './components/Toast'
 import { AppErrorBoundary, ErrorProvider } from './lib/errorHandling'
+import { ProtectedRoute } from './components/ProtectedRoute'
+
+// Internal imports - Layouts
+import AppLayout from './layouts/AppLayout'
+
+// Internal imports - Pages
 import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
 import Patients from './pages/Patients'
 import PatientForm from './pages/PatientForm'
 import PatientDetail from './pages/PatientDetail'
 import NotFound from './pages/NotFound'
-import AppLayout from './layouts/AppLayout'
-import { ProtectedRoute } from './components/ProtectedRoute'
 
 function App() {
   const router = createBrowserRouter(createRoutesFromElements(

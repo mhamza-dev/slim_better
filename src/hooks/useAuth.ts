@@ -1,4 +1,7 @@
+// React imports
 import { useContext } from 'react'
+
+// Internal imports - Context
 import { AuthContext, type AuthContextValue } from '../context/AuthContextTypes'
 
 export function useAuth(): AuthContextValue {

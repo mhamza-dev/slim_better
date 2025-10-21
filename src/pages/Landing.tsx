@@ -1,7 +1,14 @@
+// React imports
 import { useState } from 'react'
-import { useAuth } from '../hooks/useAuth'
+
+// React Router imports
 import { Navigate } from 'react-router-dom'
+
+// Third-party imports
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
+
+// Internal imports - Hooks
+import { useAuth } from '../hooks/useAuth'
 
 export default function Landing() {
     const { user, signIn } = useAuth()

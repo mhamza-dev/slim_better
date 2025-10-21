@@ -1,3 +1,4 @@
+// Internal imports - Services
 import { SessionService } from './index'
 
 // Re-export the new service methods for backward compatibility
@@ -27,5 +28,3 @@ export type DashboardSessionRow = {
     created_by_email?: string | null
     updated_by_email?: string | null
 }
-
-

@@ -1,4 +1,7 @@
+// Third-party imports
 import clsx from 'clsx'
+
+// React imports
 import { type ButtonHTMLAttributes, forwardRef } from 'react'
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost'
