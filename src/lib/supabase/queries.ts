@@ -122,6 +122,38 @@ export const patientQueries = {
 
     // Create new patient
     async create(input: Omit<Patient, 'id' | 'created_at' | 'updated_at' | 'is_deleted'>): Promise<Patient> {
+        // Check if a patient with the same phone_number already exists (including soft-deleted)
+        const { data: existingPatient, error: checkError } = await supabase
+            .from('patients')
+            .select('*')
+            .eq('phone_number', input.phone_number)
+            .maybeSingle()
+
+        if (checkError) throw checkError
+
+        // If patient exists and is not deleted, throw an error
+        if (existingPatient && !existingPatient.is_deleted) {
+            throw new Error(`A patient with phone number ${input.phone_number} already exists.`)
+        }
+
+        // If patient exists but is soft-deleted, restore and update it
+        if (existingPatient && existingPatient.is_deleted) {
+            const { data: restoredPatient, error: updateError } = await supabase
+                .from('patients')
+                .update({
+                    ...input,
+                    is_deleted: false,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', existingPatient.id)
+                .select('*')
+                .single()
+
+            if (updateError) throw updateError
+            return restoredPatient
+        }
+
+        // If patient doesn't exist, create a new one
         const { data, error } = await supabase
             .from('patients')
             .insert({
